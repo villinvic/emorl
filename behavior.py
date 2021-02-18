@@ -21,13 +21,13 @@ class Reward(dict):
 
         self.weights = np.random.normal(size=(len(sub_goals),))
 
-
     def total(self):
         t = 0.0
         for v, weight in zip(self.values(), self.weights):
             t += v * weight
 
         return t
+
 
 class Indicator:
     def __init__(self, *functions):

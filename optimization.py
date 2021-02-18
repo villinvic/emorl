@@ -1,7 +1,7 @@
 """ 
 Author : goji .
 Date : 15/02/2021 .
-File : utils.py .
+File : optimization.py .
 
 Description : None
 
@@ -10,8 +10,6 @@ Observations : None
 
 # == Imports ==
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 # =============
 
 
@@ -55,20 +53,24 @@ def nd_sort(scores, n_objectives ):
 
     return frontiers
 
+
 def cd_select(scores, indexes, size):
+    indexes = np.array(indexes)
     distances_left = [0] * len(indexes)
     distances_right = [0] * len(indexes)
     distances = [0] * len(indexes)
 
     for i, index in enumerate(indexes):
         for index2 in indexes[:index:]:
-            dist = distance( scores[:][index], scores[:][index2])
+            dist = distance(scores[:, index], scores[:, index2])
             if dist > 0 and dist > distances_left[i]:
                 distances_left[i] = dist
             elif dist < 0 and dist < distances_right[i]:
                 distances_right[i] = dist
         distances[i] = distances_left[i] - distances_right[i]
-    return indexes[np.argsort(distances)][-size:]
+
+    return indexes[np.argsort(np.array(distances))][-size:]
+
 
 def distance(x1, x2):
     d = 0

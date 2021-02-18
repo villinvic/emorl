@@ -10,9 +10,8 @@ Observations : None
 
 # == Imports ==
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Reshape, GRU, BatchNormalization
+from tensorflow.keras.layers import Dense
 import numpy as np
-import copy
 from tensorflow.keras.activations import relu
 # =============
 
@@ -231,9 +230,8 @@ class AC(tf.keras.Model):
         self.gamma = gamma
         self.neg_scale = neg_scale
         self.gae_lambda = tf.Variable(gae_lambda, dtype=tf.float32, trainable=False)
-        self.epsilon = tf.Variable(0.001, dtype=tf.float32, trainable=False)
         self.policy = CategoricalActor(state_shape, action_dim, epsilon_greedy)
-        self.optim = tf.keras.optimizers.Adam(learning_rate=lr, beta_1=0.9, epsilon=1e-8)
+        self.optim = tf.keras.optimizers.SGD(learning_rate=lr)
         self.step = tf.Variable(0, dtype=tf.int32)
         self.traj_length = tf.Variable(traj_length - 1, dtype=tf.int32, trainable=False)
 
