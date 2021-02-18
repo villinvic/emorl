@@ -11,7 +11,7 @@ Observations : None
 # == Imports ==
 from population import Population, Individual
 from env_utils import *
-
+from plotting import Plotter
 
 import numpy as np
 import zmq
@@ -20,6 +20,7 @@ import signal
 from optimization import nd_sort, cd_select
 import sys
 import time
+import p5
 # =============
 
 class EXIT(Exception) : pass
@@ -45,6 +46,8 @@ class Collector:
         self.mating_pipe.bind("ipc://MATING")
         self.evolved_pipe = context.socket(zmq.PULL)
         self.evolved_pipe.bind("ipc://EVOLVED")
+
+        self.plotter = Plotter(self.population)
 
         self.generation = 1
 
@@ -111,12 +114,15 @@ class Collector:
 
     def exit(self):
         print('Exiting...')
+        self.plotter.close()
+        self.plotter.join()
         for i in range(self.n_server):
             self.servers[i].send_signal(signal.SIGINT)
         print('Done.')
         raise EXIT
 
     def main_loop(self):
+        self.plotter.start()
         try:
             self.start_servers()
             time.sleep(5)
@@ -127,6 +133,7 @@ class Collector:
                 self.select(offspring)
 
                 print(self.population)
+                p5.redraw()
 
         except (KeyboardInterrupt, EXIT):
             self.exit()

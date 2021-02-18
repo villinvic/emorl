@@ -14,7 +14,11 @@ from collector import Collector
 from env_utils import *
 import sys
 import gym
+import os
 # =============
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 
 
 def RUN(env='Pong-ram-v0', size=15, n_server=4, n_send=1):
