@@ -26,7 +26,8 @@ def nd_sort(scores, n_objectives ):
     """
     frontiers = [[]]
     assert n_objectives > 1
-    indexes = np.array(list(reversed(np.argsort(scores[0]))))
+    indexes = np.array(list(reversed(np.argsort(scores[0, :, 0]))))
+    weighted_score = scores[:, :, 0]*100 + scores[:, :, 1]
 
     for index in indexes:
         x = len(frontiers)
@@ -36,7 +37,7 @@ def nd_sort(scores, n_objectives ):
             for solution in frontiers[k]:
                 tmp = True
                 for objective_num in range(1, n_objectives):
-                    if scores[objective_num][index] > scores[objective_num][solution]:
+                    if weighted_score[objective_num][index] > weighted_score[objective_num][solution]:
                         tmp = False
                         break
                 dominated = tmp
@@ -59,10 +60,11 @@ def cd_select(scores, indexes, size):
     distances_left = [0] * len(indexes)
     distances_right = [0] * len(indexes)
     distances = [0] * len(indexes)
+    comparing_score = scores[:, :, 1]
 
     for i, index in enumerate(indexes):
         for index2 in indexes[:index:]:
-            dist = distance(scores[:, index], scores[:, index2])
+            dist = distance(comparing_score[:, index], comparing_score[:, index2])
             if dist > 0 and dist > distances_left[i]:
                 distances_left[i] = dist
             elif dist < 0 and dist < distances_right[i]:

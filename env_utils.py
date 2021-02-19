@@ -20,8 +20,8 @@ class Pong(dict):
         self.goal_dim = 3
 
         self.behavior_functions = [
-            lambda x: x.behavior_stats[self['objectives'][0]] * 100 + x.behavior_stats[self['objectives'][1]],
-            lambda x: x.behavior_stats[self['objectives'][0]] * 100 + x.behavior_stats[self['objectives'][2]],
+            lambda x: np.array([x.behavior_stats[self['objectives'][0]], x.behavior_stats[self['objectives'][1]]]),
+            lambda x: np.array([x.behavior_stats[self['objectives'][0]], x.behavior_stats[self['objectives'][2]]]),
         ]
 
     def score_delta(self, obs):

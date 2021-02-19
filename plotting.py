@@ -14,7 +14,8 @@ import numpy as np
 import threading
 import sys
 import time
-
+import matplotlib.pyplot as plt
+from typing import Optional
 # =============
 
 # TODO : pop score area, stats,
@@ -162,6 +163,72 @@ colors = {
     "white smoke": (245, 245, 245),
     "white": (255, 255, 255),
 }
+
+class PlotterV2(threading.Thread):
+
+    def __init__(self, dump_path='generations/', top=10):
+        super(PlotterV2, self).__init__()
+        self.path = dump_path
+        self.exit = False
+        self.top = top
+        self.updated = False
+
+    def run(self):
+        while True:
+            if self.exit:
+                break
+            if self.updated:
+                self.plot()
+
+    def update(self, pop, scores, selected, gen):
+        self.pop = pop
+        self.scores = scores
+        self.selected = selected
+        self.gen = gen
+        self.updated = True
+
+    def plot(self):
+        x = np.arange(10)
+        width = 0.2
+        fig, (bars, opti) = plt.subplots(2, 1, figsize=(6, 10))
+        fig.tight_layout()
+        data = np.empty((4, self.top), dtype=np.float32)
+        for i in range(self.top):
+            data[0][i] = self.pop.individuals[i].behavior_stats['win_rate']
+            data[1][i] = self.pop.individuals[i].behavior_stats['move_rate']
+            data[2][i] = self.pop.individuals[i].behavior_stats['no_op_rate']
+            data[3][i] = self.pop.individuals[i].gen
+        rects1 = bars.bar(x - width, data[0], width, label='Winrate')
+        rects2 = bars.bar(x, data[1], width, label='Moverate')
+        rects1 = bars.bar(x + width, data[2], width, label='NOOPrate')
+
+        bars.set_ylabel('Scores')
+        bars.set_xlabel('Generations')
+        bars.set_title('Top %d scores' % self.top)
+        bars.set_xticks(x)
+        bars.set_xticklabels(data[-1].astype(int))
+        bars.legend()
+
+        for index in range(len(self.scores[0])):
+            color = 'r' if index in self.selected else 'k'
+
+            opti.plot(*(self.scores[:, index, 0] * self.scores[:, index, 0] *
+                        self.scores[:, index, 1]), marker='o', color=color)
+        opti.set_ylabel('Lasy')
+        opti.set_xlabel('Busy')
+        opti.set_title('Selected individuals')
+
+        fig.subplots_adjust(bottom=0.05, left=0.1, top=0.96, hspace=0.2)
+
+        fig.savefig(self.path+'iteration_%d.png' % self.gen)
+        plt.close(fig)
+
+
+
+
+    def join(self, timeout: Optional[float] = ...):
+        self.exit = True
+
 
 
 class Plotter(threading.Thread):
