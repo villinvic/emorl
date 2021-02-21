@@ -15,6 +15,14 @@ import numpy as np
 from tensorflow.keras.activations import relu
 # =============
 
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+  try:
+    for gpu in gpus:
+      tf.config.experimental.set_memory_growth(gpu, True)
+  except RuntimeError as e:
+    print(e)
+
 
 
 class Distribution(object):
@@ -154,6 +162,12 @@ class CategoricalActor(tf.keras.Model):
 
     def value(self, states):
         return self.v(self._compute_feature(states))
+        
+    def compute_all(self, states):
+        features = self._compute_feature(states)
+        p = self.prob(features) * (1.0 - self.epsilon) + self.epsilon / np.float32(self.action_dim)
+        v = self.v(features)
+        return v, p
 
     def compute_entropy(self, states):
         param = self._compute_dist(states)
@@ -181,21 +195,26 @@ class CategoricalActor(tf.keras.Model):
         log_prob = self.dist.log_likelihood(actions, param)
         return log_prob
 
-    def get_action(self, state):
+    def get_action(self, state, return_dist=False):
         assert isinstance(state, np.ndarray)
         is_single_state = len(state.shape) == self.state_ndim
 
         state = state[np.newaxis][np.newaxis].astype(
             np.float32) if is_single_state else state
-        action = self._get_action_body(tf.constant(state))
+        action, dist = self._get_action_body(tf.constant(state), return_dist)
+        
+        if return_dist:
+                return (action.numpy()[0][0], dist.numpy()[0][0]) if is_single_state else (action, dist)
 
         return action.numpy()[0][0] if is_single_state else action
 
     @tf.function
-    def _get_action_body(self, state):
+    def _get_action_body(self, state, return_dist):
         param = self._compute_dist(state)
         action = tf.squeeze(self.dist.sample(param), axis=1)
-        return action
+        if return_dist:
+                return action, param['prob']
+        return action, None
 
 
 class V(tf.keras.Model):
@@ -248,6 +267,8 @@ class AC(tf.keras.Model):
 
         v_loss, mean_entropy, min_entropy, max_entropy, min_logp, max_logp \
             = self._train(states, actions, rewards, gpu)
+            
+        #tf.print(v_loss, mean_entropy, min_entropy, max_entropy)
 
         """
         tf.summary.scalar(name=self.name + "/v_loss", data=v_loss)
@@ -268,14 +289,14 @@ class AC(tf.keras.Model):
 
             actions = tf.cast(actions, dtype=tf.int32)
             with tf.GradientTape() as tape:
-                v_all = self.policy.value(states)
+                v_all, p = self.policy.compute_all(states)
                 v = v_all[:, :-1, 0]
                 last_v = v_all[:, -1, 0]
                 targets = self.compute_gae(v, rewards, last_v)
                 advantage = tf.stop_gradient(targets) - v
                 v_loss = tf.reduce_mean(tf.square(advantage))
 
-                p = self.policy.get_probs(states[:, :-1])
+                p = p[:, :-1] # self.policy.get_probs(states[:, :-1])
                 p_log = tf.math.log(p + 1e-8)
 
                 ent = - tf.reduce_sum(tf.multiply(p_log, p), -1)
@@ -304,14 +325,14 @@ class AC(tf.keras.Model):
 
     def compute_gae(self, v, rewards, last_v):
         v = tf.transpose(v)
-        rewards = tf.transpose(rewards)
+        rewards= tf.transpose(rewards)
         reversed_sequence = [tf.reverse(t, [0]) for t in [v, rewards]]
-
+        
         def bellman(future, present):
             val, r = present
-            return (1. - self.gae_lambda) * val + self.gae_lambda * (
-                        r + (1.0 - self.neg_scale) * relu(-r) + self.gamma * future)
-
+            # clipped_r = tf.clip_by_value(r, clip_value_min=-2.0, clip_value_max=2.0)
+            return (1. - self.gae_lambda) * val + self.gae_lambda * (r + (1.0-self.neg_scale)*relu(-r)  + self.gamma * future)
+        
         returns = tf.scan(bellman, reversed_sequence, last_v)
         returns = tf.reverse(returns, [0])
         returns = tf.transpose(returns)

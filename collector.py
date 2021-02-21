@@ -65,7 +65,7 @@ class Collector:
         for i in range(self.population.size):
             self.evaluation.player.set_weights(self.population.individuals[i].get_weights())
             self.population.individuals[i].behavior_stats = \
-                self.evaluation.eval(self.evaluation.player, self.evaluation.eval_length / 2.0)
+                self.evaluation.eval(self.evaluation.player, self.evaluation.eval_length / 4.0)
         print('OK.')
 
     def start_servers(self):
@@ -73,10 +73,10 @@ class Collector:
             cmd = "python3 boot_server.py %d %s" % (i, self.env_id)
             self.servers[i] = subprocess.Popen(cmd.split())
 
-    def tournament(self, k=5, key='win_rate'):
-        p = np.random.choice( np.arange(self.population.size), (k,), replace=False)
-        best_index = -1
-        best_score = 0
+    def tournament(self, k=2, key='win_rate'):
+        p = np.random.choice( np.arange(self.population.size), (k,), replace=True)
+        best_index = p[0]
+        best_score = -1
         for i in p:
             score = self.population.individuals[i].behavior_stats[key]
             if score > best_score:
@@ -93,9 +93,8 @@ class Collector:
 
     def receive_evolved(self):
         offspring = np.empty((2 * self.n_send * self.n_server,), dtype=LightIndividual)
-        print('Receiving...')
+        print('Collector receiving...')
         for i in range(self.n_server):
-            print(i)
             try:
                 p = self.evolved_pipe.recv_pyobj()
             except KeyboardInterrupt:
@@ -107,7 +106,7 @@ class Collector:
                 new.set_weights(p[j]['weights'])
                 new.behavior_stats = p[j]['eval']
                 offspring[i * self.n_send*2 + j] = new
-        print('done receiving')
+        print('Done receiving')
         return offspring
 
     def select(self, offspring):
@@ -145,14 +144,14 @@ class Collector:
         self.plotter.join()
         for i in range(self.n_server):
             self.servers[i].send_signal(signal.SIGINT)
-        print('Done.')
+        
         raise EXIT
 
     def main_loop(self):
-        self.init_pop()
+        # self.init_pop()
         self.plotter.start()
         self.start_servers()
-        time.sleep(3)
+        time.sleep(6)
         try:
             while True:
                 self.generation += 1
@@ -165,5 +164,5 @@ class Collector:
 
         except (KeyboardInterrupt, EXIT):
             self.exit()
-
+        print('EXITED.')
 

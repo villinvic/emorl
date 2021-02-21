@@ -16,7 +16,6 @@ import fire
 
 
 def RUN(ID, env_id):
-    print(env_id)
     server = EvolutionServer(int(ID), env_id)
     server.run()
     sys.exit(0)

@@ -23,7 +23,7 @@ import gym
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', traj_length=256, batch_size=1, n_play=20, eval_length=2500,
+    def __init__(self, ID, env_id='Pong-ram-v0', traj_length=256, batch_size=1, n_play=4, eval_length=3000,
                  subprocess=True):
         self.ID = ID
         self.env = gym.make(env_id)
@@ -67,7 +67,7 @@ class EvolutionServer:
         self.evolved_pipe.send_pyobj(q)
 
     def SBX_beta(self, n):
-        beta = np.random.randint(0, 5)
+        beta = np.random.uniform(0, 5)
         if beta <= 1.0:
             return 0.5 * (n+1) * (beta ** n)
         else:
@@ -85,13 +85,33 @@ class EvolutionServer:
             q2 = deepcopy(p1)
 
             # TODO change point, list index instead of each sublist
+            s = 33927 # 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
+            c = 0
+            point = np.random.randint(0, s)
             for j in range(len(p1['pi'])):
                 if isinstance(p1['pi'][j], np.ndarray) and len(p1['pi'][j] > 0):
-                    point = np.random.randint(0, len(p1['pi'][j]))
-                    q1['pi'][j][:point] = p2['pi'][j][:point]
-                    q2['pi'][j][point:] = p2['pi'][j][point:]
+                    if isinstance(p1['pi'][j][0], np.ndarray) and len(p1['pi'][j] > 0):
+                        for k in range(len(p1['pi'][j])):
+                            if c + len(p1['pi'][j][k]) > point and c < point:
+                                q1['pi'][j][k][:point-c] = p2['pi'][j][k][:point-c]
+                                q2['pi'][j][k][point-c:] = p2['pi'][j][k][point-c:]
+                            elif c < point :
+                                q1['pi'][j][k] = p2['pi'][j][k]
+                            else:
+                                q2['pi'][j][k] = p2['pi'][j][k]
+                            c += len(p1['pi'][j][k])
+                    else :
+                        if c + len(p1['pi'][j]) > point and c < point:
+                            q1['pi'][j][:point-c] = p2['pi'][j][:point-c]
+                            q2['pi'][j][point-c:] = p2['pi'][j][point-c:]
+                        elif c < point :
+                            q1['pi'][j] = p2['pi'][j]
+                        else:
+                            q2['pi'][j] = p2['pi'][j]
+                        c += len(p1['pi'][j])
+               
             # SBX for reward
-            beta = self.SBX_beta(5)
+            beta = self.SBX_beta(2)
             x = 0.5 * (p1['r'] + p2['r'])
             q1['r'] = x - 0.5 * beta * (np.abs(p1['r'] - p2['r']))
             q2['r'] = x + 0.5 * beta * (np.abs(p1['r'] - p2['r']))
@@ -100,15 +120,15 @@ class EvolutionServer:
             offspring[i+1] = q2
         return offspring
 
-    def mutate(self, offspring, intensity=0.01):
+    def mutate(self, offspring, intensity=0.001):
         for q in offspring:
             for i in range(len(q['pi'])):
                 if isinstance(q['pi'][i], np.ndarray) and len(q['pi'][i] > 0):
                     gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
                     q['pi'][i] += gaussian_noise
 
-            gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['r'].shape)
-            q['r'] = np.clip(q['r'] + gaussian_noise, 0, 1)
+            gaussian_noise = np.random.normal(loc=0, scale=0.1, size=q['r'].shape)
+            q['r'] = np.clip(q['r'] * (1  + gaussian_noise), 0, 1)
 
     def eval(self, player: Individual, max_frame):
         r = {
@@ -118,6 +138,7 @@ class EvolutionServer:
             'no_op_rate': 0.0,
             'move_rate': 0.0,
             'win_rate': 0.0,
+            'entropy': 0.0,
         }
         frame_count = 0
         n_games = 0
@@ -125,11 +146,13 @@ class EvolutionServer:
         last_score_delta = 0
         actions = [0] * 6
         total_points = 0.0
+        dist = np.zeros((self.action_dim,), dtype=np.float32)
         while frame_count < max_frame:
             done = False
             observation = self.env.reset() / 255.0
             while not done and frame_count < max_frame:
-                action = player.pi.policy.get_action(observation)
+                action, dist_ = player.pi.policy.get_action(observation, return_dist=True)
+                dist += dist_
                 actions[action] += 1
                 observation, reward, done, info = self.env.step(action)
                 observation = observation / 255.0
@@ -149,10 +172,9 @@ class EvolutionServer:
                     total_points += 1
                     if win > 0:
                         r['win_rate'] += 1
-                last_score_delta = delta_score
+                    last_score_delta = delta_score
 
                 frame_count += 1
-            n_games += 1
             if done:
                 n_games += 1
 
@@ -161,7 +183,8 @@ class EvolutionServer:
         r['win_rate'] = r['win_rate'] / float(total_points)
         r['no_op_rate'] = r['no_op_rate'] / float(max_frame)
         r['move_rate'] = r['move_rate'] / float(max_frame)
-
+        dist /= float(max_frame)
+        r['entropy'] = -np.sum(np.log(dist+1e-8) * dist)
         return r
 
     def play(self, player: Individual, max_frame, observation=None):
@@ -177,22 +200,23 @@ class EvolutionServer:
             while not done and frame_count < max_frame:
                 action = player.pi.policy.get_action(observation)
                 actions[action] += 1
-                observation, reward, done, info = self.env.step(action)
-                observation = observation / 255.0
+                observation_, reward, done, info = self.env.step(action)
+                observation_ = observation_ / 255.0
                 distance_moved = self.util.pad_move(observation, last_pos)
 
-                moved = int(distance_moved > 1e-5) * 0.1
+                moved = int(distance_moved > 1e-5)
                 last_pos = observation[self.util['player_y']]
                 delta_score = self.util.score_delta(observation)
                 win = delta_score - last_score_delta
                 last_score_delta = delta_score
-                act = (int(self.util.is_no_op(action)) - 1) * 0.1
+                act = (int(self.util.is_no_op(action)) - 1)
 
                 self.trajectory['state'][0, frame_count] = observation
                 self.trajectory['action'][0, frame_count] = action
                 self.trajectory['rew'][0, frame_count] = win * player.reward_weight[0] +\
-                                                         moved * player.reward_weight[1] +\
-                                                         act * player.reward_weight[2]
+                                                         0.1 * moved * player.reward_weight[1] +\
+                                                         0.1*act * player.reward_weight[2]
+                observation = observation_
 
                 frame_count += 1
 
@@ -205,7 +229,7 @@ class EvolutionServer:
             obs = None
             for _ in range(self.n_play):
                 obs = self.play(self.player, self.traj_length, obs)
-                self.player.pi.train(self.trajectory['state'], self.trajectory['action'][:, :-1], self.trajectory['rew'][:, 1:], -1)
+                self.player.pi.train(self.trajectory['state'], self.trajectory['action'][:, :-1], self.trajectory['rew'][:, :-1], -1)
             trained[i] = {'weights': self.player.get_weights()}
         return trained
 

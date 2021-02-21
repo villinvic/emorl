@@ -192,15 +192,21 @@ class PlotterV2(threading.Thread):
         width = 0.2
         fig, (bars, opti) = plt.subplots(2, 1, figsize=(6, 10))
         fig.tight_layout()
-        data = np.empty((4, self.top), dtype=np.float32)
+        data = np.empty((6 + 1, self.top), dtype=np.float32)
         for i in range(self.top):
             data[0][i] = self.pop.individuals[i].behavior_stats['win_rate']
             data[1][i] = self.pop.individuals[i].behavior_stats['move_rate']
             data[2][i] = self.pop.individuals[i].behavior_stats['no_op_rate']
-            data[3][i] = self.pop.individuals[i].gen
-        rects1 = bars.bar(x - width, data[0], width, label='Winrate')
-        rects2 = bars.bar(x, data[1], width, label='Moverate')
-        rects1 = bars.bar(x + width, data[2], width, label='NOOPrate')
+            data[3][i] = self.pop.individuals[i].reward_weight[0] * 0.1
+            data[4][i] = self.pop.individuals[i].reward_weight[1] * 0.1
+            data[5][i] = self.pop.individuals[i].reward_weight[2] * 0.1
+            data[6][i] = self.pop.individuals[i].gen
+        rects1 = bars.bar(x - width, data[0], width, label='Winrate', color='y')
+        rects2 = bars.bar(x, data[1], width, label='Moverate', color='b')
+        rects1 = bars.bar(x + width, data[2], width, label='NOOPrate', color='r')
+        rects1 = bars.bar(x - width, data[3], width/3.0, color='k')
+        rects2 = bars.bar(x, data[4], width/3.0, color='k')
+        rects1 = bars.bar(x + width, data[5], width/3.0, color='k')
 
         bars.set_ylabel('Scores')
         bars.set_xlabel('Generations')
@@ -210,7 +216,10 @@ class PlotterV2(threading.Thread):
         bars.legend()
 
         for index in range(len(self.scores[0])):
-            color = 'r' if index in self.selected else 'k'
+            if index >= self.pop.size:
+                color = (1.0,0.6,0.6) if index in self.selected else (0.4,0.4,0.4)
+            else:
+                color = 'r' if index in self.selected else 'k'
 
             opti.plot(*(self.scores[:, index, 0] * self.scores[:, index, 0] *
                         self.scores[:, index, 1]), marker='o', color=color)
