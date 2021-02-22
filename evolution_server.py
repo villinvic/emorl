@@ -23,12 +23,13 @@ import gym
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', traj_length=256, batch_size=1, n_play=4, eval_length=3000,
+    def __init__(self, ID, env_id='Pong-ram-v0', traj_length=128, batch_size=1, n_play=500, eval_length=2000,
                  subprocess=True):
         self.ID = ID
         self.env = gym.make(env_id)
+        self.env.frame_skip = 2
         self.util = name2class[env_id]()
-        self.state_shape = self.env.observation_space.shape
+        self.state_shape = (self.util.state_dim*2,)
         self.action_dim = self.env.action_space.n
         self.indicators = Indicator(dummy)
         self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim, traj_length=traj_length)
@@ -46,9 +47,9 @@ class EvolutionServer:
         self.eval_length = eval_length
 
         self.trajectory = {
-            'state': np.zeros((batch_size, traj_length)+self.env.observation_space.shape, dtype=np.float32),
+            'state': np.zeros((batch_size, traj_length)+self.state_shape, dtype=np.float32),
             'action': np.zeros((batch_size, self.traj_length), dtype=np.int32),
-            'rew': np.zeros((batch_size, self.traj_length,), dtype=np.float32),
+            'rew': np.zeros((batch_size, self.traj_length), dtype=np.float32),
         }
 
         if subprocess:
@@ -85,9 +86,10 @@ class EvolutionServer:
             q2 = deepcopy(p1)
 
             # TODO change point, list index instead of each sublist
-            s = 33927 # 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
+            s = 8775 # 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
             c = 0
             point = np.random.randint(0, s)
+            """
             for j in range(len(p1['pi'])):
                 if isinstance(p1['pi'][j], np.ndarray) and len(p1['pi'][j] > 0):
                     if isinstance(p1['pi'][j][0], np.ndarray) and len(p1['pi'][j] > 0):
@@ -109,6 +111,7 @@ class EvolutionServer:
                         else:
                             q2['pi'][j] = p2['pi'][j]
                         c += len(p1['pi'][j])
+            """
                
             # SBX for reward
             beta = self.SBX_beta(2)
@@ -120,15 +123,15 @@ class EvolutionServer:
             offspring[i+1] = q2
         return offspring
 
-    def mutate(self, offspring, intensity=0.001):
+    def mutate(self, offspring, intensity=0.):
         for q in offspring:
             for i in range(len(q['pi'])):
                 if isinstance(q['pi'][i], np.ndarray) and len(q['pi'][i] > 0):
                     gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
                     q['pi'][i] += gaussian_noise
 
-            gaussian_noise = np.random.normal(loc=0, scale=0.1, size=q['r'].shape)
-            q['r'] = np.clip(q['r'] * (1  + gaussian_noise), 0, 1)
+            gaussian_noise = np.random.normal(loc=0, scale=0.05, size=q['r'].shape)
+            q['r'] = np.clip(q['r'] + gaussian_noise, 0, 1) # np.clip(q['r'] * (1  + gaussian_noise), 0, 1)
 
     def eval(self, player: Individual, max_frame):
         r = {
@@ -143,36 +146,29 @@ class EvolutionServer:
         frame_count = 0
         n_games = 0
         last_pos = 0.0
-        last_score_delta = 0
         actions = [0] * 6
-        total_points = 0.0
         dist = np.zeros((self.action_dim,), dtype=np.float32)
         while frame_count < max_frame:
             done = False
-            observation = self.env.reset() / 255.0
+            observation = self.util.preprocess(self.env.reset())
+            observation = np.concatenate([observation, observation])
             while not done and frame_count < max_frame:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True)
                 dist += dist_
                 actions[action] += 1
-                observation, reward, done, info = self.env.step(action)
-                observation = observation / 255.0
+                observation_, reward, done, info = self.env.step(action)
+                observation_ = self.util.preprocess(observation_)
+                observation = np.concatenate([observation[len(observation)//2:],observation_])
                 r['game_reward'] += reward
                 if reward < 0:
                     r['total_punition'] += reward
                 r['no_op_rate'] += int(self.util.is_no_op(action))
-                distance_moved = self.util.pad_move(observation, last_pos)
+                distance_moved = self.util.pad_move(observation_, last_pos)
 
                 moved = int(distance_moved > 1e-5)
 
                 r['move_rate'] += moved
-                last_pos = observation[self.util['player_y']]
-                delta_score = self.util.score_delta(observation)
-                win = delta_score - last_score_delta
-                if win != 0:
-                    total_points += 1
-                    if win > 0:
-                        r['win_rate'] += 1
-                    last_score_delta = delta_score
+                last_pos = observation_[4]
 
                 frame_count += 1
             if done:
@@ -180,7 +176,7 @@ class EvolutionServer:
 
         print(actions)
         r['avg_length'] = max_frame / float(n_games + 1)
-        r['win_rate'] = r['win_rate'] / float(total_points)
+        r['win_rate'] = (np.abs(r['game_reward'] - r['total_punition'])) / float(np.abs(r['game_reward'] - 2 * r['total_punition']))
         r['no_op_rate'] = r['no_op_rate'] / float(max_frame)
         r['move_rate'] = r['move_rate'] / float(max_frame)
         dist /= float(max_frame)
@@ -196,30 +192,35 @@ class EvolutionServer:
         while frame_count < max_frame:
             done = False
             if observation is None:
-                observation = self.env.reset() / 255.0
+                observation = self.util.preprocess(self.env.reset())
+                observation = np.concatenate([observation, observation])
+                
             while not done and frame_count < max_frame:
                 action = player.pi.policy.get_action(observation)
                 actions[action] += 1
                 observation_, reward, done, info = self.env.step(action)
-                observation_ = observation_ / 255.0
-                distance_moved = self.util.pad_move(observation, last_pos)
+                observation_ = self.util.preprocess(observation_)
+                distance_moved = self.util.pad_move(observation_, last_pos)
 
                 moved = int(distance_moved > 1e-5)
-                last_pos = observation[self.util['player_y']]
-                delta_score = self.util.score_delta(observation)
-                win = delta_score - last_score_delta
-                last_score_delta = delta_score
+                last_pos = observation_[4]
+                delta_score = self.util.score_delta(observation_)
+                # win = delta_score - last_score_delta
+                # last_score_delta = delta_score
                 act = (int(self.util.is_no_op(action)) - 1)
 
                 self.trajectory['state'][0, frame_count] = observation
                 self.trajectory['action'][0, frame_count] = action
-                self.trajectory['rew'][0, frame_count] = win * player.reward_weight[0] +\
+                self.trajectory['rew'][0, frame_count] = reward * player.reward_weight[0] +\
                                                          0.1 * moved * player.reward_weight[1] +\
-                                                         0.1*act * player.reward_weight[2]
-                observation = observation_
-
+                                                         0.1 * act * player.reward_weight[2]
+                
+                observation = np.concatenate([observation[len(observation)//2:],observation_])
                 frame_count += 1
 
+            if done:
+            	observation = self.util.preprocess(self.env.reset())
+            	observation = np.concatenate([observation, observation])
         return observation
 
     def DRL(self, offspring):

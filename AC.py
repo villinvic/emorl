@@ -104,8 +104,8 @@ class CategoricalActor(tf.keras.Model):
         self.state_ndim = len(state_shape)
         self.epsilon = tf.Variable(epsilon, name="Actor_epsilon", trainable=False, dtype=tf.float32)
 
-        self.l1 = Dense(128, activation='elu', dtype='float32', name="critic_L1")
-        self.l2 = Dense(128, activation='elu', dtype='float32', name="L2")
+        self.l1 = Dense(64, activation='elu', dtype='float32', name="critic_L1")
+        self.l2 = Dense(64, activation='elu', dtype='float32', name="L2")
         self.prob = Dense(action_dim, dtype='float32', name="prob", activation="softmax")
 
         self.v = Dense(1, dtype='float32', name="value", activation="linear")
@@ -250,7 +250,7 @@ class AC(tf.keras.Model):
         self.neg_scale = neg_scale
         self.gae_lambda = tf.Variable(gae_lambda, dtype=tf.float32, trainable=False)
         self.policy = CategoricalActor(state_shape, action_dim, epsilon_greedy)
-        self.optim = tf.keras.optimizers.SGD(learning_rate=lr)
+        self.optim = tf.keras.optimizers.Adam(learning_rate=lr)
         self.step = tf.Variable(0, dtype=tf.int32)
         self.traj_length = tf.Variable(traj_length - 1, dtype=tf.int32, trainable=False)
 
@@ -265,10 +265,10 @@ class AC(tf.keras.Model):
             print(list(states))
             states = tf.where(tf.math.is_nan(states), tf.zeros_like(states), states)
 
-        v_loss, mean_entropy, min_entropy, max_entropy, min_logp, max_logp \
+        v_loss, mean_entropy, min_entropy, max_entropy, min_logp, max_logp, p_loss \
             = self._train(states, actions, rewards, gpu)
             
-        #tf.print(v_loss, mean_entropy, min_entropy, max_entropy)
+        tf.print(v_loss, p_loss, mean_entropy, min_entropy, max_entropy)
 
         """
         tf.summary.scalar(name=self.name + "/v_loss", data=v_loss)
@@ -294,6 +294,7 @@ class AC(tf.keras.Model):
                 last_v = v_all[:, -1, 0]
                 targets = self.compute_gae(v, rewards, last_v)
                 advantage = tf.stop_gradient(targets) - v
+                # tf.print(rewards, advantage, summarize=-1)
                 v_loss = tf.reduce_mean(tf.square(advantage))
 
                 p = p[:, :-1] # self.policy.get_probs(states[:, :-1])
@@ -321,7 +322,7 @@ class AC(tf.keras.Model):
             max_entropy = tf.reduce_max(ent)
 
             return v_loss, mean_entropy, min_entropy, max_entropy, tf.reduce_min(
-                p_log), tf.reduce_max(p_log)
+                p_log), tf.reduce_max(p_log), p_loss
 
     def compute_gae(self, v, rewards, last_v):
         v = tf.transpose(v)
@@ -330,8 +331,9 @@ class AC(tf.keras.Model):
         
         def bellman(future, present):
             val, r = present
+            m = tf.cast(tf.abs(r) < 0.9, tf.float32)
             # clipped_r = tf.clip_by_value(r, clip_value_min=-2.0, clip_value_max=2.0)
-            return (1. - self.gae_lambda) * val + self.gae_lambda * (r + (1.0-self.neg_scale)*relu(-r)  + self.gamma * future)
+            return (1. - self.gae_lambda) * val + self.gae_lambda * (r + (1.0-self.neg_scale)*relu(-r)  + self.gamma * future * m)
         
         returns = tf.scan(bellman, reversed_sequence, last_v)
         returns = tf.reverse(returns, [0])

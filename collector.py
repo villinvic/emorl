@@ -8,7 +8,7 @@ Description : None
 Observations : None
 """
 
-# == Imports ==
+# == Imports =
 from population import Population, LightIndividual
 from env_utils import *
 from plotting import PlotterV2
@@ -33,7 +33,7 @@ class Collector:
         dummy = gym.make(self.util.name)
 
 
-        self.state_shape = dummy.observation_space.shape
+        self.state_shape = (self.util.state_dim*2,)
         self.action_dim = dummy.action_space.n
         self.goal_dim = self.util.goal_dim
         self.n_server = n_server
@@ -73,10 +73,10 @@ class Collector:
             cmd = "python3 boot_server.py %d %s" % (i, self.env_id)
             self.servers[i] = subprocess.Popen(cmd.split())
 
-    def tournament(self, k=2, key='win_rate'):
+    def tournament(self, k=5, key='win_rate'):
         p = np.random.choice( np.arange(self.population.size), (k,), replace=True)
         best_index = p[0]
-        best_score = -1
+        best_score = -np.inf
         for i in p:
             score = self.population.individuals[i].behavior_stats[key]
             if score > best_score:

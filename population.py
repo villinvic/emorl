@@ -17,7 +17,7 @@ from behavior import *
 class Individual:
 
     def __init__(self, state_shape, action_dim, goal_dim, epsilon=0, lr=0.0001, gamma=0.99, entropy_scale=0,
-                 gae_lambda=1.0, traj_length=256, batch_size=1, neg_scale=1.0, generation=1):
+                 gae_lambda=1.0, traj_length=128, batch_size=1, neg_scale=1.0, generation=1):
         self.pi = AC(state_shape, action_dim, epsilon, lr, gamma, entropy_scale, gae_lambda,
                      traj_length, batch_size, neg_scale)
         self.reward_weight = np.random.uniform(0.1, 0.5, size=(goal_dim,))
@@ -42,7 +42,7 @@ class Individual:
 class LightIndividual:
     def __init__(self, goal_dim, generation=1):
 
-        self.reward_weight = np.random.uniform(0., 1.0, size=(goal_dim,))
+        self.reward_weight = np.array([1,0,0], dtype=np.float32)
         self.behavior_stats = {}
         self.gen = generation
         self.model_weights = None
@@ -69,7 +69,7 @@ class Population:
             self.individuals[i].behavior_stats = {o: -np.inf for o in objectives}
             for j in range(len(w['pi'])):
                 if isinstance(w['pi'][j], np.ndarray) and len(w['pi'][j] > 0):
-                    gaussian_noise = np.random.normal(loc=0, scale=0.01, size=w['pi'][j].shape)
+                    gaussian_noise = np.random.normal(loc=0, scale=0.02, size=w['pi'][j].shape)
                     w['pi'][j] += gaussian_noise
             self.individuals[i].model_weights = w['pi']
 

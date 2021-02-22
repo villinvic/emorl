@@ -221,8 +221,8 @@ class PlotterV2(threading.Thread):
             else:
                 color = 'r' if index in self.selected else 'k'
 
-            opti.plot(*(self.scores[:, index, 0] * self.scores[:, index, 0] *
-                        self.scores[:, index, 1]), marker='o', color=color)
+            opti.plot(*(np.sqrt(self.scores[:, index, 0] *
+                        self.scores[:, index, 1])), marker='o', color=color)
         opti.set_ylabel('Lasy')
         opti.set_xlabel('Busy')
         opti.set_title('Selected individuals')
