@@ -19,19 +19,22 @@ import signal
 import sys
 from copy import deepcopy
 import gym
+from time import time
+import matplotlib.pyplot as plt
 # =============
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', traj_length=128, batch_size=1, n_play=500, eval_length=2000,
-                 subprocess=True):
+    def __init__(self, ID, env_id='Pong-ram-v0', traj_length=256, batch_size=1, max_train=5, early_stop=7,
+                 round_length=100, eval_length=2000, subprocess=True, mutation_rate=0.01):
         self.ID = ID
         self.env = gym.make(env_id)
-        self.env.frame_skip = 2
+        self.env.frame_skip = 4
         self.util = name2class[env_id]()
         self.state_shape = (self.util.state_dim*2,)
         self.action_dim = self.env.action_space.n
         self.indicators = Indicator(dummy)
+        self.mutation_rate = mutation_rate
         self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim, traj_length=traj_length)
 
         if subprocess:
@@ -42,7 +45,9 @@ class EvolutionServer:
             self.evolved_pipe.connect("ipc://EVOLVED")
 
         self.traj_length = traj_length
-        self.n_play = n_play
+        self.max_train = max_train
+        self.early_stop = early_stop
+        self.round_length = round_length
         self.batch_size = batch_size
         self.eval_length = eval_length
 
@@ -84,12 +89,9 @@ class EvolutionServer:
             # SPX for NN
             q1 = deepcopy(p1)
             q2 = deepcopy(p1)
-
-            # TODO change point, list index instead of each sublist
-            s = 8775 # 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
+            s = 32*32 * 2 +32*2 + 32*6 + 6 + 32 + 1 # 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
             c = 0
             point = np.random.randint(0, s)
-            """
             for j in range(len(p1['pi'])):
                 if isinstance(p1['pi'][j], np.ndarray) and len(p1['pi'][j] > 0):
                     if isinstance(p1['pi'][j][0], np.ndarray) and len(p1['pi'][j] > 0):
@@ -102,7 +104,7 @@ class EvolutionServer:
                             else:
                                 q2['pi'][j][k] = p2['pi'][j][k]
                             c += len(p1['pi'][j][k])
-                    else :
+                    else:
                         if c + len(p1['pi'][j]) > point and c < point:
                             q1['pi'][j][:point-c] = p2['pi'][j][:point-c]
                             q2['pi'][j][point-c:] = p2['pi'][j][point-c:]
@@ -111,7 +113,6 @@ class EvolutionServer:
                         else:
                             q2['pi'][j] = p2['pi'][j]
                         c += len(p1['pi'][j])
-            """
                
             # SBX for reward
             beta = self.SBX_beta(2)
@@ -123,15 +124,16 @@ class EvolutionServer:
             offspring[i+1] = q2
         return offspring
 
-    def mutate(self, offspring, intensity=0.):
+    def mutate(self, offspring, intensity=0.005):
         for q in offspring:
-            for i in range(len(q['pi'])):
-                if isinstance(q['pi'][i], np.ndarray) and len(q['pi'][i] > 0):
-                    gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
-                    q['pi'][i] += gaussian_noise
+            if np.random.random() < self.mutation_rate:
+                for i in range(len(q['pi'])):
+                    if isinstance(q['pi'][i], np.ndarray) and len(q['pi'][i] > 0):
+                        gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
+                        q['pi'][i] += gaussian_noise
 
-            gaussian_noise = np.random.normal(loc=0, scale=0.05, size=q['r'].shape)
-            q['r'] = np.clip(q['r'] + gaussian_noise, 0, 1) # np.clip(q['r'] * (1  + gaussian_noise), 0, 1)
+                gaussian_noise = np.random.normal(loc=0, scale=0.02, size=q['r'].shape)
+                q['r'] = np.clip(q['r'] + gaussian_noise, 0, 1)# np.clip(q['r'] * (1  + gaussian_noise), 0, 1)
 
     def eval(self, player: Individual, max_frame):
         r = {
@@ -153,7 +155,7 @@ class EvolutionServer:
             observation = self.util.preprocess(self.env.reset())
             observation = np.concatenate([observation, observation])
             while not done and frame_count < max_frame:
-                action, dist_ = player.pi.policy.get_action(observation, return_dist=True)
+                action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
                 dist += dist_
                 actions[action] += 1
                 observation_, reward, done, info = self.env.step(action)
@@ -219,8 +221,8 @@ class EvolutionServer:
                 frame_count += 1
 
             if done:
-            	observation = self.util.preprocess(self.env.reset())
-            	observation = np.concatenate([observation, observation])
+                observation = self.util.preprocess(self.env.reset())
+                observation = np.concatenate([observation, observation])
         return observation
 
     def DRL(self, offspring):
@@ -228,15 +230,41 @@ class EvolutionServer:
         for i, q in enumerate(offspring):
             self.player.set_weights(q) # sets nn and r weights
             obs = None
-            for _ in range(self.n_play):
+            # x = np.arange(self.n_play)
+            # y = np.empty((self.n_play,))
+            y = []
+            start_time = time()
+            no_progress_counter = 0
+            best_score = -np.inf
+            rew = 0
+            training_step = 0
+            while time() - start_time < self.max_train * 60:
                 obs = self.play(self.player, self.traj_length, obs)
                 self.player.pi.train(self.trajectory['state'], self.trajectory['action'][:, :-1], self.trajectory['rew'][:, :-1], -1)
+                training_step += 1
+                rew += np.sum(self.trajectory['rew'][:, :-1])
+
+                if not training_step % self.round_length:
+                    y.append(rew)
+                    if rew >= best_score:
+                        best_score = rew
+                        rew = 0
+                        no_progress_counter = 0
+                    else:
+                        no_progress_counter += 1
+                        if no_progress_counter == self.early_stop:
+                            print('[%d] DRL break at %d' % (self.ID, training_step))
+                            break
+
+            plt.plot(np.arange(len(y)), y)
+            plt.draw()
+            plt.show()
             trained[i] = {'weights': self.player.get_weights()}
         return trained
 
     def evaluate(self, trained):
         for individual in trained:
-            self.player.set_weights(individual['weights'])  # sets nn and r weights
+            self.player.set_weights(individual['weights'])
             individual['eval'] = self.eval(self.player, self.eval_length)
 
     def run(self):
@@ -256,3 +284,8 @@ class EvolutionServer:
             print('[%d] eval ok' % self.ID)
             self.send_evolved(trained)
             print('[%d] sent evolved' % self.ID)
+
+def smooth(y, box_pts):
+    box = np.ones(box_pts)/box_pts
+    y_smooth = np.convolve(y, box, mode='same')
+    return y_smooth

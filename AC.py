@@ -127,7 +127,7 @@ class CategoricalActor(tf.keras.Model):
         features = self.l2(features)
         return features
 
-    def _compute_dist(self, states):
+    def _compute_dist(self, states, eval=False):
         """
         Compute categorical distribution
 
@@ -137,7 +137,10 @@ class CategoricalActor(tf.keras.Model):
         """
         features = self._compute_feature(states)
 
-        probs = self.prob(features) * (1.0 - self.epsilon) + self.epsilon / np.float32(self.action_dim)
+        if eval:
+            probs = self.prob(features)
+        else:
+            probs = self.prob(features) * (1.0 - self.epsilon) + self.epsilon / np.float32(self.action_dim)
 
         return {"prob": probs}
 
@@ -195,13 +198,13 @@ class CategoricalActor(tf.keras.Model):
         log_prob = self.dist.log_likelihood(actions, param)
         return log_prob
 
-    def get_action(self, state, return_dist=False):
+    def get_action(self, state, return_dist=False, eval=False):
         assert isinstance(state, np.ndarray)
         is_single_state = len(state.shape) == self.state_ndim
 
         state = state[np.newaxis][np.newaxis].astype(
             np.float32) if is_single_state else state
-        action, dist = self._get_action_body(tf.constant(state), return_dist)
+        action, dist = self._get_action_body(tf.constant(state), return_dist, eval)
         
         if return_dist:
                 return (action.numpy()[0][0], dist.numpy()[0][0]) if is_single_state else (action, dist)
@@ -209,8 +212,8 @@ class CategoricalActor(tf.keras.Model):
         return action.numpy()[0][0] if is_single_state else action
 
     @tf.function
-    def _get_action_body(self, state, return_dist):
-        param = self._compute_dist(state)
+    def _get_action_body(self, state, return_dist, eval):
+        param = self._compute_dist(state, eval)
         action = tf.squeeze(self.dist.sample(param), axis=1)
         if return_dist:
                 return action, param['prob']
@@ -227,8 +230,8 @@ class V(tf.keras.Model):
     def __init__(self, name='vf'):
         super().__init__(name=name)
 
-        self.l1 = Dense(128, activation='elu', dtype='float32', name="v_L1")
-        self.l2 = Dense(128, activation='elu', dtype='float32', name="L2")
+        self.l1 = Dense(64, activation='elu', dtype='float32', name="v_L1")
+        self.l2 = Dense(64, activation='elu', dtype='float32', name="L2")
         self.v = Dense(1, activation='linear', dtype='float32', name="v")
 
     def call(self, states):
@@ -241,7 +244,7 @@ class V(tf.keras.Model):
 
 class AC(tf.keras.Model):
     def __init__(self, state_shape, action_dim, epsilon_greedy, lr, gamma, entropy_scale, gae_lambda,
-                 traj_length=1, batch_size=1, neg_scale=1.0, name='AC'):
+                 traj_length=1, batch_size=1, neg_scale=1.0, name='AC', split=False):
         super().__init__(name=name)
         self.state_shape = state_shape
         self.action_dim = action_dim
@@ -250,9 +253,12 @@ class AC(tf.keras.Model):
         self.neg_scale = neg_scale
         self.gae_lambda = tf.Variable(gae_lambda, dtype=tf.float32, trainable=False)
         self.policy = CategoricalActor(state_shape, action_dim, epsilon_greedy)
-        self.optim = tf.keras.optimizers.Adam(learning_rate=lr)
+        self.optim = tf.keras.optimizers.Adam(learning_rate=lr, epsilon=1e8, beta_1=0.9, beta_2=0.98)
         self.step = tf.Variable(0, dtype=tf.int32)
         self.traj_length = tf.Variable(traj_length - 1, dtype=tf.int32, trainable=False)
+        if split:
+            self.V = V()
+        self.split = split
 
         self.gae_values = tf.Variable(np.zeros((traj_length - 1,)), trainable=False, dtype=tf.float32)
 
@@ -268,7 +274,7 @@ class AC(tf.keras.Model):
         v_loss, mean_entropy, min_entropy, max_entropy, min_logp, max_logp, p_loss \
             = self._train(states, actions, rewards, gpu)
             
-        tf.print(v_loss, p_loss, mean_entropy, min_entropy, max_entropy)
+        # tf.print(v_loss, p_loss, mean_entropy, min_entropy, max_entropy)
 
         """
         tf.summary.scalar(name=self.name + "/v_loss", data=v_loss)
@@ -289,15 +295,19 @@ class AC(tf.keras.Model):
 
             actions = tf.cast(actions, dtype=tf.int32)
             with tf.GradientTape() as tape:
-                v_all, p = self.policy.compute_all(states)
+                if self.split:
+                    v_all = self.V(states)
+                    p = self.policy.get_probs(states[:, :-1])
+                else:
+                    v_all, p = self.policy.compute_all(states)
+                    p = p[:, :-1]
                 v = v_all[:, :-1, 0]
                 last_v = v_all[:, -1, 0]
                 targets = self.compute_gae(v, rewards, last_v)
                 advantage = tf.stop_gradient(targets) - v
-                # tf.print(rewards, advantage, summarize=-1)
+                #tf.print(rewards, advantage, summarize=-1)
                 v_loss = tf.reduce_mean(tf.square(advantage))
 
-                p = p[:, :-1] # self.policy.get_probs(states[:, :-1])
                 p_log = tf.math.log(p + 1e-8)
 
                 ent = - tf.reduce_sum(tf.multiply(p_log, p), -1)
@@ -331,9 +341,9 @@ class AC(tf.keras.Model):
         
         def bellman(future, present):
             val, r = present
-            m = tf.cast(tf.abs(r) < 0.9, tf.float32)
+            # m = tf.cast(tf.abs(r) < 0.9, tf.float32)
             # clipped_r = tf.clip_by_value(r, clip_value_min=-2.0, clip_value_max=2.0)
-            return (1. - self.gae_lambda) * val + self.gae_lambda * (r + (1.0-self.neg_scale)*relu(-r)  + self.gamma * future * m)
+            return (1. - self.gae_lambda) * val + self.gae_lambda * (r + (1.0-self.neg_scale)*relu(-r)  + self.gamma * future)
         
         returns = tf.scan(bellman, reversed_sequence, last_v)
         returns = tf.reverse(returns, [0])

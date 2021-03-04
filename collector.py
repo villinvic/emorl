@@ -6,6 +6,7 @@ File : collector.py .
 Description : None
 
 Observations : None
+
 """
 
 # == Imports =
@@ -13,6 +14,7 @@ from population import Population, LightIndividual
 from env_utils import *
 from plotting import PlotterV2
 from evolution_server import EvolutionServer
+from serializer import Serializer
 
 import numpy as np
 import zmq
@@ -22,12 +24,13 @@ from optimization import nd_sort, cd_select
 import sys
 import time
 import p5
+from datetime import datetime
 # =============
 
 class EXIT(Exception) : pass
 
 class Collector:
-    def __init__(self, env_id, size, n_server, n_send):
+    def __init__(self, env_id, size, n_server, n_send, checkpoint_dir='checkpoint/', start_from=None):
 
         self.util = name2class[env_id]()
         dummy = gym.make(self.util.name)
@@ -42,6 +45,7 @@ class Collector:
         self.env_id = env_id
         self.behavior_functions = self.util.behavior_functions
         self.size = size
+        self.ckpt_dir = checkpoint_dir
 
         self.population = Population(self.state_shape, self.action_dim, self.goal_dim, self.size,
                                      self.util['objectives'])
@@ -53,8 +57,11 @@ class Collector:
         self.evolved_pipe.bind("ipc://EVOLVED")
 
         self.plotter = PlotterV2()
+        self.serializer = Serializer(checkpoint_dir)
 
         self.generation = 1
+
+        self.start_from = start_from
 
         self.evaluation = None
 
@@ -73,8 +80,8 @@ class Collector:
             cmd = "python3 boot_server.py %d %s" % (i, self.env_id)
             self.servers[i] = subprocess.Popen(cmd.split())
 
-    def tournament(self, k=5, key='win_rate'):
-        p = np.random.choice( np.arange(self.population.size), (k,), replace=True)
+    def tournament(self, k=1, key='win_rate'):
+        p = np.random.choice(np.arange(self.population.size), (k,), replace=False)
         best_index = p[0]
         best_score = -np.inf
         for i in p:
@@ -82,6 +89,7 @@ class Collector:
             if score > best_score:
                 best_index = i
                 best_score = score
+        # print('tournament:', best_index)
         return best_index
 
     def send_mating(self):
@@ -98,8 +106,7 @@ class Collector:
             try:
                 p = self.evolved_pipe.recv_pyobj()
             except KeyboardInterrupt:
-                self.exit()
-                break
+                raise EXIT
 
             for j in range(self.n_send*2):
                 new = LightIndividual(self.goal_dim, generation=self.generation)
@@ -141,26 +148,40 @@ class Collector:
 
     def exit(self):
         print('Exiting...')
-        self.plotter.join()
         for i in range(self.n_server):
             self.servers[i].send_signal(signal.SIGINT)
-        
-        raise EXIT
+
+        try:
+            self.serializer.dump(self.population, 'run--' + str(datetime.now()) + '--' + str(self.generation-1))
+        except Exception as e:
+            print('serializer failed :', e)
 
     def main_loop(self):
-        # self.init_pop()
-        self.plotter.start()
+        #self.init_pop()
+        if self.start_from is not None:
+            self.generation = int(self.start_from.split('--')[-1])
+            self.population = self.serializer.load(self.start_from)
+
         self.start_servers()
         time.sleep(6)
+        start = True
+        scores = None
+        selected = None
         try:
             while True:
                 self.generation += 1
                 self.send_mating()
+
+                if start:
+                    start = False
+                else:
+                    self.plotter.update(self.population, scores, selected, self.generation-1)
+                    self.plotter.plot()
+
                 offspring = self.receive_evolved()
                 scores, selected = self.select(offspring)
 
                 print(self.population)
-                self.plotter.update(self.population, scores, selected, self.generation)
 
         except (KeyboardInterrupt, EXIT):
             self.exit()

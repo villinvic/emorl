@@ -1,0 +1,11 @@
+EMOGI
+    --TODO--
+    population serializer
+    checkpoints
+    find better reward weight mutation ?
+    Check NN crossover, seems to have bad influence on perf (gets worse than both parents)
+    debug a3c part
+
+    --Progress--
+    Testing over parameters
+    Population initialization

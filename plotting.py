@@ -164,7 +164,8 @@ colors = {
     "white": (255, 255, 255),
 }
 
-class PlotterV2(threading.Thread):
+
+class PlotterV2:
 
     def __init__(self, dump_path='generations/', top=10):
         super(PlotterV2, self).__init__()
@@ -172,13 +173,7 @@ class PlotterV2(threading.Thread):
         self.exit = False
         self.top = top
         self.updated = False
-
-    def run(self):
-        while True:
-            if self.exit:
-                break
-            if self.updated:
-                self.plot()
+        self.mean_ent_hist = []
 
     def update(self, pop, scores, selected, gen):
         self.pop = pop
@@ -190,9 +185,10 @@ class PlotterV2(threading.Thread):
     def plot(self):
         x = np.arange(10)
         width = 0.2
-        fig, (bars, opti) = plt.subplots(2, 1, figsize=(6, 10))
+        fig, ((bars, opti), (entropy, _)) = plt.subplots(2, 2, figsize=(10, 10))
         fig.tight_layout()
         data = np.empty((6 + 1, self.top), dtype=np.float32)
+        ent = 0
         for i in range(self.top):
             data[0][i] = self.pop.individuals[i].behavior_stats['win_rate']
             data[1][i] = self.pop.individuals[i].behavior_stats['move_rate']
@@ -200,7 +196,9 @@ class PlotterV2(threading.Thread):
             data[3][i] = self.pop.individuals[i].reward_weight[0] * 0.1
             data[4][i] = self.pop.individuals[i].reward_weight[1] * 0.1
             data[5][i] = self.pop.individuals[i].reward_weight[2] * 0.1
+            ent += self.pop.individuals[i].behavior_stats['entropy']
             data[6][i] = self.pop.individuals[i].gen
+        self.mean_ent_hist.append(ent/float(self.top))
         rects1 = bars.bar(x - width, data[0], width, label='Winrate', color='y')
         rects2 = bars.bar(x, data[1], width, label='Moverate', color='b')
         rects1 = bars.bar(x + width, data[2], width, label='NOOPrate', color='r')
@@ -227,17 +225,15 @@ class PlotterV2(threading.Thread):
         opti.set_xlabel('Busy')
         opti.set_title('Selected individuals')
 
-        fig.subplots_adjust(bottom=0.05, left=0.1, top=0.96, hspace=0.2)
+        entropy.plot(list(range(len(self.mean_ent_hist))), self.mean_ent_hist)
+        entropy.set_ylabel('Entropy')
+        entropy.set_xlabel('Iteration')
+        entropy.set_title('Top 10 mean entropy over iterations')
+
+        fig.subplots_adjust(bottom=0.05, left=0.1, top=0.96, hspace=0.2, wspace=0.2)
 
         fig.savefig(self.path+'iteration_%d.png' % self.gen)
         plt.close(fig)
-
-
-
-
-    def join(self, timeout: Optional[float] = ...):
-        self.exit = True
-
 
 
 class Plotter(threading.Thread):
