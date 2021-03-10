@@ -253,7 +253,7 @@ class AC(tf.keras.Model):
         self.neg_scale = neg_scale
         self.gae_lambda = tf.Variable(gae_lambda, dtype=tf.float32, trainable=False)
         self.policy = CategoricalActor(state_shape, action_dim, epsilon_greedy)
-        self.optim = tf.keras.optimizers.Adam(learning_rate=lr, epsilon=1e8, beta_1=0.9, beta_2=0.98)
+        self.optim = tf.keras.optimizers.Adam(learning_rate=lr, epsilon=1e-8, beta_1=0.9, beta_2=0.999)
         self.step = tf.Variable(0, dtype=tf.int32)
         self.traj_length = tf.Variable(traj_length - 1, dtype=tf.int32, trainable=False)
         if split:
@@ -264,6 +264,10 @@ class AC(tf.keras.Model):
 
         self.entropy_scale = tf.Variable(entropy_scale, dtype=tf.float32, trainable=True,
                                          constraint=tf.keras.activations.relu)
+
+    def reset_optim(self):
+        for var in self.optim.variables():
+            var.assign(tf.zeros_like(var))
 
     def train(self, states, actions, rewards, gpu):
 

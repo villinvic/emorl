@@ -51,21 +51,21 @@ class RLtest:
 
         for b in range(self.batch):
             for i in range(self.traj):
-                    action = self.nn.policy.get_action(observation)
-                    observation_, reward, done, info = self.env.step(action)
-                    observation_ = self.util.preprocess(observation_)
-                    actions[action] += 1
-                    batch_total += reward
+                action = self.nn.policy.get_action(observation)
+                observation_, reward, done, info = self.env.step(action)
+                observation_ = self.util.preprocess(observation_)
+                actions[action] += 1
+                batch_total += reward
 
-                    self.trajectory['state'][b, i] = deepcopy(observation)
-                    self.trajectory['action'][b, i] = action
-                    self.trajectory['rew'][b, i] = reward
+                self.trajectory['state'][b, i] = deepcopy(observation)
+                self.trajectory['action'][b, i] = action
+                self.trajectory['rew'][b, i] = reward
 
-                    if done:
-                        observation = self.util.preprocess(self.env.reset())
-                        observation = np.concatenate([observation, observation])
-                    else:
-                        observation = np.concatenate([observation[len(observation) // 2:], observation_])
+                if done:
+                    observation = self.util.preprocess(self.env.reset())
+                    observation = np.concatenate([observation, observation])
+                else:
+                    observation = np.concatenate([observation[len(observation) // 2:], observation_])
 
         self.reward[self.plot_index] = batch_total
         self.plot_index += 1
@@ -98,7 +98,7 @@ class RLtest:
         print('done')
 
 
-def TEST(alpha=0.001, gamma=0.98, traj=256, batch=1):
+def TEST(alpha=0.002, gamma=0.98, traj=256, batch=1):
     tester = RLtest(alpha, gamma, traj, batch)
     tester.train_loop()
 

@@ -20,13 +20,18 @@ import sys
 from copy import deepcopy
 import gym
 from time import time
-import matplotlib.pyplot as plt
+import socket
 # =============
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', traj_length=256, batch_size=1, max_train=5, early_stop=7,
-                 round_length=100, eval_length=2000, subprocess=True, mutation_rate=0.01):
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=256, batch_size=1, max_train=10, early_stop=7,
+                 round_length=30, eval_length=2000, subprocess=True, mutation_rate=0.5):
+        if collector_ip is None:
+            self.ip = socket.gethostbyname(socket.gethostname())
+        else:
+            self.ip = collector_ip
+
         self.ID = ID
         self.env = gym.make(env_id)
         self.env.frame_skip = 4
@@ -40,9 +45,9 @@ class EvolutionServer:
         if subprocess:
             context = zmq.Context()
             self.mating_pipe = context.socket(zmq.PULL)
-            self.mating_pipe.connect("ipc://MATING")
+            self.mating_pipe.connect("tcp://%s:5655" % self.ip)
             self.evolved_pipe = context.socket(zmq.PUSH)
-            self.evolved_pipe.connect("ipc://EVOLVED")
+            self.evolved_pipe.connect("tcp://%s:5656" % self.ip)
 
         self.traj_length = traj_length
         self.max_train = max_train
@@ -55,6 +60,7 @@ class EvolutionServer:
             'state': np.zeros((batch_size, traj_length)+self.state_shape, dtype=np.float32),
             'action': np.zeros((batch_size, self.traj_length), dtype=np.int32),
             'rew': np.zeros((batch_size, self.traj_length), dtype=np.float32),
+            'base_rew': np.zeros((batch_size, self.traj_length), dtype=np.float32),
         }
 
         if subprocess:
@@ -72,15 +78,36 @@ class EvolutionServer:
     def send_evolved(self, q):
         self.evolved_pipe.send_pyobj(q)
 
-    def SBX_beta(self, n):
-        beta = np.random.uniform(0, 5)
-        if beta <= 1.0:
-            return 0.5 * (n+1) * (beta ** n)
+    def SBX_beta(self, n, p1, p2, distance):
+        if distance < 1e-5:
+            return 0, 0
+        spread_factor_lower = 1 + 2 * (min(p1, p2) - 0) / distance
+        spread_factor_upper = 1 + 2 * (1 - max(p1, p2)) / distance
+        amplification_lower = self.amplification_factor(spread_factor_lower, n)
+        amplification_upper = self.amplification_factor(spread_factor_upper, n)
+
+        return self.compute_spread_factor(amplification_lower, n), self.compute_spread_factor(amplification_upper, n)
+
+    @staticmethod
+    def amplification_factor(spread_factor, distribution_index):
+        assert spread_factor >= 0, spread_factor
+        assert distribution_index >= 0
+        print(2 / (2 - np.power(spread_factor, -(distribution_index + 1))), spread_factor)
+        return 2 / (2 - np.power(spread_factor, -(distribution_index + 1)))
+
+    @staticmethod
+    def compute_spread_factor(amplification_factor, distribution_index):
+        assert amplification_factor >= 1, amplification_factor
+        assert distribution_index >= 0, distribution_index
+        u = np.random.random()
+        if u < amplification_factor / 2:
+            return np.power(2 * u / amplification_factor, 1. / (distribution_index + 1))
         else:
-            return 0.5 * (n+1) / (beta ** (n+2))
+            return np.power(1 / (2 - 2 * u / amplification_factor), 1. / (distribution_index + 1))
 
     def crossover(self, mating):
-        offspring = np.empty_like(mating)
+        offspring = np.empty((len(mating)//2,), dtype=dict)
+        offspring_index = 0
         for i in range(0, len(mating)-1, 2):
             p1 = mating[i]
             p2 = mating[i+1]
@@ -88,8 +115,8 @@ class EvolutionServer:
 
             # SPX for NN
             q1 = deepcopy(p1)
-            q2 = deepcopy(p1)
-            s = 32*32 * 2 +32*2 + 32*6 + 6 + 32 + 1 # 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
+            # q2 = deepcopy(p1)
+            s = 64*64 * 2 +64*2 + 64*6 + 6 + 64 + 1 # 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
             c = 0
             point = np.random.randint(0, s)
             for j in range(len(p1['pi'])):
@@ -98,30 +125,40 @@ class EvolutionServer:
                         for k in range(len(p1['pi'][j])):
                             if c + len(p1['pi'][j][k]) > point and c < point:
                                 q1['pi'][j][k][:point-c] = p2['pi'][j][k][:point-c]
-                                q2['pi'][j][k][point-c:] = p2['pi'][j][k][point-c:]
+                                # q2['pi'][j][k][point-c:] = p2['pi'][j][k][point-c:]
                             elif c < point :
                                 q1['pi'][j][k] = p2['pi'][j][k]
                             else:
-                                q2['pi'][j][k] = p2['pi'][j][k]
+                                pass
+                                # q2['pi'][j][k] = p2['pi'][j][k]
                             c += len(p1['pi'][j][k])
                     else:
-                        if c + len(p1['pi'][j]) > point and c < point:
+                        if c + len(p1['pi'][j]) > point > c:
                             q1['pi'][j][:point-c] = p2['pi'][j][:point-c]
-                            q2['pi'][j][point-c:] = p2['pi'][j][point-c:]
+                            # q2['pi'][j][point-c:] = p2['pi'][j][point-c:]
                         elif c < point :
                             q1['pi'][j] = p2['pi'][j]
                         else:
-                            q2['pi'][j] = p2['pi'][j]
+                            # q2['pi'][j] = p2['pi'][j]
+                            pass
                         c += len(p1['pi'][j])
-               
-            # SBX for reward
-            beta = self.SBX_beta(2)
-            x = 0.5 * (p1['r'] + p2['r'])
-            q1['r'] = x - 0.5 * beta * (np.abs(p1['r'] - p2['r']))
-            q2['r'] = x + 0.5 * beta * (np.abs(p1['r'] - p2['r']))
 
-            offspring[i] = q1
-            offspring[i+1] = q2
+            # SBX for reward
+            distance = np.fabs(p1['r'] - p2['r'])
+            x = 0.5 * (p1['r'] + p2['r'])
+            for j in range(len(p1['r'])):
+                beta1, beta2 = self.SBX_beta(20, p1['r'][j], p2['r'][j], distance[j])
+                if np.random.random() < 0.5:
+                    q1['r'] = x - 0.5 * beta1 * distance
+                else:
+                    q1['r'] = x + 0.5 * beta2 * distance
+            # q2['r'] = x + 0.5 * beta * (np.abs(p1['r'] - p2['r']))
+
+            print(q1['r'])
+
+            offspring[offspring_index] = q1
+            offspring_index += 1
+            # offspring[i+1] = q2
         return offspring
 
     def mutate(self, offspring, intensity=0.005):
@@ -132,8 +169,8 @@ class EvolutionServer:
                         gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
                         q['pi'][i] += gaussian_noise
 
-                gaussian_noise = np.random.normal(loc=0, scale=0.02, size=q['r'].shape)
-                q['r'] = np.clip(q['r'] + gaussian_noise, 0, 1)# np.clip(q['r'] * (1  + gaussian_noise), 0, 1)
+                gaussian_noise = np.random.normal(loc=0, scale=0.1, size=q['r'].shape)
+                q['r'] = np.clip(q['r'] + gaussian_noise, 0, 1)# np.clip(q['r'] * (1 + gaussian_noise), 0, 1)
 
     def eval(self, player: Individual, max_frame):
         r = {
@@ -167,7 +204,8 @@ class EvolutionServer:
                 r['no_op_rate'] += int(self.util.is_no_op(action))
                 distance_moved = self.util.pad_move(observation_, last_pos)
 
-                moved = int(distance_moved > 1e-5)
+                print(distance_moved)
+                moved = int(distance_moved > 1e-3)
 
                 r['move_rate'] += moved
                 last_pos = observation_[4]
@@ -186,43 +224,42 @@ class EvolutionServer:
         return r
 
     def play(self, player: Individual, max_frame, observation=None):
-        frame_count = 0
         n_games = 0
         last_pos = 0.0
         last_score_delta = 0
         actions = [0]*6
-        while frame_count < max_frame:
-            done = False
-            if observation is None:
-                observation = self.util.preprocess(self.env.reset())
-                observation = np.concatenate([observation, observation])
-                
-            while not done and frame_count < max_frame:
-                action = player.pi.policy.get_action(observation)
-                actions[action] += 1
-                observation_, reward, done, info = self.env.step(action)
-                observation_ = self.util.preprocess(observation_)
-                distance_moved = self.util.pad_move(observation_, last_pos)
 
-                moved = int(distance_moved > 1e-5)
-                last_pos = observation_[4]
-                delta_score = self.util.score_delta(observation_)
-                # win = delta_score - last_score_delta
-                # last_score_delta = delta_score
-                act = (int(self.util.is_no_op(action)) - 1)
+        if observation is None:
+            observation = self.util.preprocess(self.env.reset())
+            observation = np.concatenate([observation, observation])
 
-                self.trajectory['state'][0, frame_count] = observation
-                self.trajectory['action'][0, frame_count] = action
-                self.trajectory['rew'][0, frame_count] = reward * player.reward_weight[0] +\
-                                                         0.1 * moved * player.reward_weight[1] +\
-                                                         0.1 * act * player.reward_weight[2]
-                
-                observation = np.concatenate([observation[len(observation)//2:],observation_])
-                frame_count += 1
+        for frame_count in range(max_frame):
+            action = player.pi.policy.get_action(observation)
+            actions[action] += 1
+            observation_, reward, done, info = self.env.step(action)
+            observation_ = self.util.preprocess(observation_)
+            distance_moved = self.util.pad_move(observation_, last_pos)
+
+            moved = int(distance_moved > 1e-5)
+            last_pos = observation_[4]
+            delta_score = self.util.score_delta(observation_)
+            # win = delta_score - last_score_delta
+            # last_score_delta = delta_score
+            act = (int(self.util.is_no_op(action)) - 1)
+
+            self.trajectory['state'][0, frame_count] = observation
+            self.trajectory['action'][0, frame_count] = action
+            self.trajectory['rew'][0, frame_count] = reward * player.reward_weight[0] +\
+                                                     0.02 * moved * player.reward_weight[1] +\
+                                                     0.02 * act * player.reward_weight[2]
+            self.trajectory['base_rew'][0, frame_count] = reward
 
             if done:
                 observation = self.util.preprocess(self.env.reset())
                 observation = np.concatenate([observation, observation])
+            else:
+                observation = np.concatenate([observation[len(observation) // 2:], observation_])
+
         return observation
 
     def DRL(self, offspring):
@@ -232,33 +269,35 @@ class EvolutionServer:
             obs = None
             # x = np.arange(self.n_play)
             # y = np.empty((self.n_play,))
-            y = []
+            # y = []
             start_time = time()
-            no_progress_counter = 0
-            best_score = -np.inf
             rew = 0
+            top = -np.inf
             training_step = 0
+            no_improvement_counter = 0
+            self.player.pi.reset_optim()
             while time() - start_time < self.max_train * 60:
                 obs = self.play(self.player, self.traj_length, obs)
                 self.player.pi.train(self.trajectory['state'], self.trajectory['action'][:, :-1], self.trajectory['rew'][:, :-1], -1)
                 training_step += 1
-                rew += np.sum(self.trajectory['rew'][:, :-1])
-
+                rew += np.sum(self.trajectory['base_rew'][:, :-1])
+                # y.append(rew)
                 if not training_step % self.round_length:
-                    y.append(rew)
-                    if rew >= best_score:
-                        best_score = rew
-                        rew = 0
-                        no_progress_counter = 0
+                    if rew > top:
+                        top = rew
+                        no_improvement_counter = 0
                     else:
-                        no_progress_counter += 1
-                        if no_progress_counter == self.early_stop:
-                            print('[%d] DRL break at %d' % (self.ID, training_step))
+                        no_improvement_counter += 1
+                        if no_improvement_counter == self.early_stop:
+                            print('[%d] early stop DRL at %d' % (self.ID, training_step))
                             break
+                    rew = 0
 
-            plt.plot(np.arange(len(y)), y)
-            plt.draw()
-            plt.show()
+
+            # y.append(np.nan)
+            # plt.plot(np.arange(len(y)), smooth(y, 100))
+            # plt.draw()
+            # plt.show()
             trained[i] = {'weights': self.player.get_weights()}
         return trained
 

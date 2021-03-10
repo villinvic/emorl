@@ -20,12 +20,12 @@ import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
-def RUN(env='Pong-ram-v0', size=15, n_server=4, n_send=1, checkpoint_dir='checkpoint/', start_from=None):
+def RUN(env='Pong-ram-v0', client_mode=False, collector_ip=None, size=15, n_server=4, n_send=1, checkpoint_dir='checkpoint/', start_from=None):
 
     if start_from == 'latest':
         pass
 
-    collector = Collector(env, size, n_server, n_send, checkpoint_dir, start_from)
+    collector = Collector(env, size, n_server, n_send, checkpoint_dir, start_from, client_mode, collector_ip)
 
     collector.main_loop()
 

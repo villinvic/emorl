@@ -22,6 +22,7 @@ import subprocess
 import signal
 from optimization import nd_sort, cd_select
 import sys
+import socket
 import time
 import p5
 from datetime import datetime
@@ -30,40 +31,55 @@ from datetime import datetime
 class EXIT(Exception) : pass
 
 class Collector:
-    def __init__(self, env_id, size, n_server, n_send, checkpoint_dir='checkpoint/', start_from=None):
+    def __init__(self, env_id, size, n_server, n_send, checkpoint_dir='checkpoint/', start_from=None,
+                 client_mode=False, ip=None):
+        self.client_mode = client_mode
 
-        self.util = name2class[env_id]()
-        dummy = gym.make(self.util.name)
-
-
-        self.state_shape = (self.util.state_dim*2,)
-        self.action_dim = dummy.action_space.n
-        self.goal_dim = self.util.goal_dim
         self.n_server = n_server
         self.servers = [None] * n_server
-        self.n_send = n_send
-        self.env_id = env_id
-        self.behavior_functions = self.util.behavior_functions
-        self.size = size
-        self.ckpt_dir = checkpoint_dir
+        if ip is None:
+            self.ip = socket.gethostbyname(socket.gethostname())
+        else:
+            self.ip = ip
 
-        self.population = Population(self.state_shape, self.action_dim, self.goal_dim, self.size,
-                                     self.util['objectives'])
+        if not client_mode:
 
-        context = zmq.Context()
-        self.mating_pipe = context.socket(zmq.PUSH)
-        self.mating_pipe.bind("ipc://MATING")
-        self.evolved_pipe = context.socket(zmq.PULL)
-        self.evolved_pipe.bind("ipc://EVOLVED")
+            self.util = name2class[env_id]()
+            dummy = gym.make(self.util.name)
 
-        self.plotter = PlotterV2()
-        self.serializer = Serializer(checkpoint_dir)
 
-        self.generation = 1
+            self.state_shape = (self.util.state_dim*2,)
+            self.action_dim = dummy.action_space.n
+            self.goal_dim = self.util.goal_dim
+            self.n_send = n_send
+            self.env_id = env_id
+            self.behavior_functions = self.util.behavior_functions
+            self.size = size
+            self.ckpt_dir = checkpoint_dir
 
-        self.start_from = start_from
+            self.population = Population(self.state_shape, self.action_dim, self.goal_dim, self.size,
+                                         self.util['objectives'])
 
-        self.evaluation = None
+            context = zmq.Context()
+            '''
+            self.mating_pipe = context.socket(zmq.PUSH)
+            self.mating_pipe.bind("ipc://MATING")
+            self.evolved_pipe = context.socket(zmq.PULL)
+            self.evolved_pipe.bind("ipc://EVOLVED")
+            '''
+            self.mating_pipe = context.socket(zmq.PUSH)
+            self.mating_pipe.bind("tcp://%s:5655" % self.ip)
+            self.evolved_pipe = context.socket(zmq.PULL)
+            self.evolved_pipe.bind("tcp://%s:5656" % self.ip)
+
+            self.plotter = PlotterV2()
+            self.serializer = Serializer(checkpoint_dir)
+
+            self.generation = 1
+
+            self.start_from = start_from
+
+            self.evaluation = None
 
     def init_pop(self):
         print('Population initialization...')
@@ -72,15 +88,15 @@ class Collector:
         for i in range(self.population.size):
             self.evaluation.player.set_weights(self.population.individuals[i].get_weights())
             self.population.individuals[i].behavior_stats = \
-                self.evaluation.eval(self.evaluation.player, self.evaluation.eval_length / 4.0)
+                self.evaluation.eval(self.evaluation.player, self.evaluation.eval_length)
         print('OK.')
 
     def start_servers(self):
         for i in range(self.n_server):
-            cmd = "python3 boot_server.py %d %s" % (i, self.env_id)
+            cmd = "python3 boot_server.py %d %s %s" % (i, self.env_id, self.ip)
             self.servers[i] = subprocess.Popen(cmd.split())
 
-    def tournament(self, k=1, key='win_rate'):
+    def tournament(self, k=2, key='win_rate'):
         p = np.random.choice(np.arange(self.population.size), (k,), replace=False)
         best_index = p[0]
         best_score = -np.inf
@@ -100,7 +116,7 @@ class Collector:
             self.mating_pipe.send_pyobj(p)
 
     def receive_evolved(self):
-        offspring = np.empty((2 * self.n_send * self.n_server,), dtype=LightIndividual)
+        offspring = np.empty((self.n_send * self.n_server,), dtype=LightIndividual)
         print('Collector receiving...')
         for i in range(self.n_server):
             try:
@@ -108,11 +124,11 @@ class Collector:
             except KeyboardInterrupt:
                 raise EXIT
 
-            for j in range(self.n_send*2):
+            for j in range(self.n_send):
                 new = LightIndividual(self.goal_dim, generation=self.generation)
                 new.set_weights(p[j]['weights'])
                 new.behavior_stats = p[j]['eval']
-                offspring[i * self.n_send*2 + j] = new
+                offspring[i * self.n_send + j] = new
         print('Done receiving')
         return offspring
 
@@ -152,38 +168,50 @@ class Collector:
             self.servers[i].send_signal(signal.SIGINT)
 
         try:
-            self.serializer.dump(self.population, 'run--' + str(datetime.now()) + '--' + str(self.generation-1))
+            if not self.client_mode:
+                self.serializer.dump(self.population, 'run--' + str(datetime.now()) + '--' + str(self.generation-1))
         except Exception as e:
             print('serializer failed :', e)
 
     def main_loop(self):
-        #self.init_pop()
-        if self.start_from is not None:
-            self.generation = int(self.start_from.split('--')[-1])
-            self.population = self.serializer.load(self.start_from)
+        if self.client_mode:
+            self.start_servers()
+            try:
+                while True:
+                    time.sleep(1)
+            except (KeyboardInterrupt, EXIT):
+                self.exit()
+            print('EXITED.')
 
-        self.start_servers()
-        time.sleep(6)
-        start = True
-        scores = None
-        selected = None
-        try:
-            while True:
-                self.generation += 1
-                self.send_mating()
+        else:
+            if self.start_from is not None:
+                self.generation = int(self.start_from.split('--')[-1].split('.')[0])
+                self.population = self.serializer.load(self.start_from)
+            else:
+                self.init_pop()
 
-                if start:
-                    start = False
-                else:
-                    self.plotter.update(self.population, scores, selected, self.generation-1)
-                    self.plotter.plot()
+            self.start_servers()
+            time.sleep(6)
+            start = True
+            scores = None
+            selected = None
+            try:
+                while True:
+                    self.generation += 1
+                    self.send_mating()
 
-                offspring = self.receive_evolved()
-                scores, selected = self.select(offspring)
+                    if start:
+                        start = False
+                    else:
+                        self.plotter.update(self.population, scores, selected, self.generation-1)
+                        self.plotter.plot()
 
-                print(self.population)
+                    offspring = self.receive_evolved()
+                    scores, selected = self.select(offspring)
 
-        except (KeyboardInterrupt, EXIT):
-            self.exit()
+                    print(self.population)
+
+            except (KeyboardInterrupt, EXIT):
+                self.exit()
         print('EXITED.')
 
