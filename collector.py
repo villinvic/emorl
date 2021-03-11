@@ -21,10 +21,8 @@ import zmq
 import subprocess
 import signal
 from optimization import nd_sort, cd_select
-import sys
 import socket
 import time
-import p5
 from datetime import datetime
 # =============
 
@@ -42,6 +40,8 @@ class Collector:
         else:
             self.ip = ip
 
+        self.env_id = env_id
+
         if not client_mode:
 
             self.util = name2class[env_id]()
@@ -52,7 +52,6 @@ class Collector:
             self.action_dim = dummy.action_space.n
             self.goal_dim = self.util.goal_dim
             self.n_send = n_send
-            self.env_id = env_id
             self.behavior_functions = self.util.behavior_functions
             self.size = size
             self.ckpt_dir = checkpoint_dir
@@ -109,26 +108,26 @@ class Collector:
         return best_index
 
     def send_mating(self):
-        p = [None] * 2 * self.n_send
-        for i in range(self.n_server):
-            for j in range(self.n_send*2):
+        p = [None] * 2
+        for i in range(self.n_send):
+            for j in range(2):
                 p[j] = self.population.individuals[self.tournament()].get_weights()
             self.mating_pipe.send_pyobj(p)
 
     def receive_evolved(self):
-        offspring = np.empty((self.n_send * self.n_server,), dtype=LightIndividual)
+        offspring = np.empty((self.n_send,), dtype=LightIndividual)
         print('Collector receiving...')
-        for i in range(self.n_server):
+        for i in range(self.n_send):
             try:
                 p = self.evolved_pipe.recv_pyobj()
             except KeyboardInterrupt:
                 raise EXIT
 
-            for j in range(self.n_send):
+            for j in range(1):
                 new = LightIndividual(self.goal_dim, generation=self.generation)
                 new.set_weights(p[j]['weights'])
                 new.behavior_stats = p[j]['eval']
-                offspring[i * self.n_send + j] = new
+                offspring[i] = new
         print('Done receiving')
         return offspring
 
@@ -181,7 +180,6 @@ class Collector:
                     time.sleep(1)
             except (KeyboardInterrupt, EXIT):
                 self.exit()
-            print('EXITED.')
 
         else:
             if self.start_from is not None:

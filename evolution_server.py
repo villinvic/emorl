@@ -25,8 +25,8 @@ import socket
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=256, batch_size=1, max_train=10, early_stop=7,
-                 round_length=30, eval_length=2000, subprocess=True, mutation_rate=0.5):
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=256, batch_size=1, max_train=10, early_stop=5,
+                 round_length=100, eval_length=2000, subprocess=True, mutation_rate=1.0):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -81,8 +81,8 @@ class EvolutionServer:
     def SBX_beta(self, n, p1, p2, distance):
         if distance < 1e-5:
             return 0, 0
-        spread_factor_lower = 1 + 2 * (min(p1, p2) - 0) / distance
-        spread_factor_upper = 1 + 2 * (1 - max(p1, p2)) / distance
+        spread_factor_lower = 1 + 2 * np.clip((min(p1, p2) - 0) / distance, 0, np.inf)  # sometimes negative ?
+        spread_factor_upper = 1 + 2 * np.clip((1 - max(p1, p2)) / distance, 0, np.inf)
         amplification_lower = self.amplification_factor(spread_factor_lower, n)
         amplification_upper = self.amplification_factor(spread_factor_upper, n)
 
@@ -204,7 +204,6 @@ class EvolutionServer:
                 r['no_op_rate'] += int(self.util.is_no_op(action))
                 distance_moved = self.util.pad_move(observation_, last_pos)
 
-                print(distance_moved)
                 moved = int(distance_moved > 1e-3)
 
                 r['move_rate'] += moved

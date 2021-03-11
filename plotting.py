@@ -9,7 +9,6 @@ Observations : None
 """
 
 # == Imports ==
-import p5
 import numpy as np
 import threading
 import sys
@@ -232,72 +231,3 @@ class PlotterV2:
 
         fig.savefig(self.path+'iteration_%d.png' % self.gen)
         plt.close(fig)
-
-
-class Plotter(threading.Thread):
-    def __init__(self, population):
-        super(Plotter, self).__init__()
-        self.population = population
-        self.font = None
-        self.window_dims = (600, 600)
-
-    def setup(self):
-        p5.size(*self.window_dims)
-        self.font = p5.create_font("LEMONMILK-Regular.otf", 16)
-        p5.no_loop()
-
-    def draw(self):
-        p5.clear()
-        p5.background(*colors['white'])
-
-
-        p5.fill(*colors['dark slate gray'])
-
-        p5.text_font(self.font, 16)
-        for i in range(11):
-            p5.text(str(i * 10), (0, 244 - i * 23))
-
-        p5.text_size(10)
-
-        p5.fill(*colors['gold'])
-        p5.text("Win Rate", (50, 0))
-        for i in range(min([self.population.size, 10])):
-
-            p5.rect((30 + i * 27, 260), 8, -self.population.individuals[i].behavior_stats['win_rate'] * 230)
-        p5.fill(*colors['lime'])
-        p5.text("Move Rate", (150, 0))
-        for i in range(min([self.population.size, 10])):
-
-            p5.rect((38 + i * 27, 260), 8, -self.population.individuals[i].behavior_stats['move_rate'] * 230)
-        p5.fill(*colors['dark red'])
-        p5.text("NO_OP Rate", (250, 0))
-        for i in range(min([self.population.size, 10])):
-            p5.rect((46 + i * 27, 260), 8, -self.population.individuals[i].behavior_stats['no_op_rate'] * 230)
-
-        p5.fill(*colors['black'])
-        p5.text('gen', (0, 262))
-        for i in range(min([self.population.size, 10])):
-            p5.text(str(self.population.individuals[i].gen), (33 + i * 27, 262))
-
-    def run(self):
-        try:
-            p5.run(self.setup, self.draw)
-        except KeyboardInterrupt:
-            pass
-        sys.exit(0)
-
-    def close(self):
-        sys.exit(0)
-
-
-"""
-pop = np.random.uniform(0, 10, (100,))
-x = Plotter(pop)
-x.start()
-for _ in range(20):
-    time.sleep(1)
-    pop[:] = np.random.uniform(0, 10, (100,))
-    p5.redraw()
-x.close()
-x.join()
-"""
