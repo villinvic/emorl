@@ -25,7 +25,7 @@ import socket
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=256, batch_size=1, max_train=15, early_stop=5,
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=256, batch_size=1, max_train=15, early_stop=10,
                  round_length=100, eval_length=2000, subprocess=True, mutation_rate=0.1):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
@@ -147,7 +147,7 @@ class EvolutionServer:
             distance = np.fabs(p1['r'] - p2['r'])
             x = 0.5 * (p1['r'] + p2['r'])
             for j in range(len(p1['r'])):
-                beta1, beta2 = self.SBX_beta(20, p1['r'][j], p2['r'][j], distance[j])
+                beta1, beta2 = self.SBX_beta(5, p1['r'][j], p2['r'][j], distance[j])
                 if np.random.random() < 0.5:
                     q1['r'] = x - 0.5 * beta1 * distance
                 else:
