@@ -216,7 +216,7 @@ class PlotterV2:
             else:
                 color = 'r' if index in self.selected else 'k'
 
-            opti.plot(*(0.1 * self.scores[:, index, 0] +
+            opti.plot(*(0.5 * self.scores[:, index, 0] +
                         self.scores[:, index, 1]), marker='o', color=color)
         opti.set_ylabel('Lasy')
         opti.set_xlabel('Busy')

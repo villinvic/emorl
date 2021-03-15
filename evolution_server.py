@@ -116,7 +116,7 @@ class EvolutionServer:
             # SPX for NN
             q1 = deepcopy(p1)
             # q2 = deepcopy(p1)
-            s = 64*64 * 2 +64*2 + 64*6 + 6 + 64 + 1 # 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
+            s = 64*64 * 3 +64*3 + 64*6 + 6 + 64 + 1 # 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
             c = 0
             point = np.random.randint(0, s)
             for j in range(len(p1['pi'])):
@@ -147,7 +147,7 @@ class EvolutionServer:
             distance = np.fabs(p1['r'] - p2['r'])
             x = 0.5 * (p1['r'] + p2['r'])
             for j in range(len(p1['r'])):
-                beta1, beta2 = self.SBX_beta(5, p1['r'][j], p2['r'][j], distance[j])
+                beta1, beta2 = self.SBX_beta(20, p1['r'][j], p2['r'][j], distance[j])
                 if np.random.random() < 0.5:
                     q1['r'] = x - 0.5 * beta1 * distance
                 else:
@@ -169,7 +169,7 @@ class EvolutionServer:
                         gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
                         q['pi'][i] += gaussian_noise
 
-                gaussian_noise = np.random.normal(loc=0, scale=0.5, size=q['r'].shape)
+                gaussian_noise = np.random.normal(loc=0, scale=0.3, size=q['r'].shape)
                 q['r'] = np.clip(q['r'] * (1 + gaussian_noise), 0, 1)
 
     def eval(self, player: Individual, max_frame):
@@ -249,8 +249,8 @@ class EvolutionServer:
             self.trajectory['state'][0, frame_count] = observation
             self.trajectory['action'][0, frame_count] = action
             self.trajectory['rew'][0, frame_count] = reward * player.reward_weight[0] +\
-                                                     0.03 * moved * player.reward_weight[1] +\
-                                                     0.03 * act * player.reward_weight[2]
+                                                     0.01 * moved * player.reward_weight[1] +\
+                                                     0.01 * act * player.reward_weight[2]
             self.trajectory['base_rew'][0, frame_count] = reward
 
             if done:
