@@ -186,7 +186,8 @@ class Collector:
                 self.generation = int(self.start_from.split('--')[-1].split('.')[0])
                 self.population = self.serializer.load(self.start_from)
             else:
-                self.init_pop()
+                pass
+                # self.init_pop()
 
             self.start_servers()
             time.sleep(6)

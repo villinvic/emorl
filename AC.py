@@ -104,8 +104,9 @@ class CategoricalActor(tf.keras.Model):
         self.state_ndim = len(state_shape)
         self.epsilon = tf.Variable(epsilon, name="Actor_epsilon", trainable=False, dtype=tf.float32)
 
-        self.l1 = Dense(64, activation='elu', dtype='float32', name="critic_L1")
-        self.l2 = Dense(64, activation='elu', dtype='float32', name="L2")
+        self.l1 = Dense(64, activation='relu', dtype='float32', name="critic_L1")
+        self.l2_policy = Dense(64, activation='relu', dtype='float32', name="L2")
+        self.l2_v = Dense(64, activation='relu', dtype='float32', name="L2")
         self.prob = Dense(action_dim, dtype='float32', name="prob", activation="softmax")
 
         self.v = Dense(1, dtype='float32', name="value", activation="linear")
@@ -124,7 +125,6 @@ class CategoricalActor(tf.keras.Model):
 
     def _compute_feature(self, states):
         features = self.l1(states)
-        features = self.l2(features)
         return features
 
     def _compute_dist(self, states, eval=False):
@@ -136,6 +136,7 @@ class CategoricalActor(tf.keras.Model):
         :return: Categorical distribution
         """
         features = self._compute_feature(states)
+        features = self.l2_policy(features)
 
         if eval:
             probs = self.prob(features)
@@ -168,8 +169,10 @@ class CategoricalActor(tf.keras.Model):
         
     def compute_all(self, states):
         features = self._compute_feature(states)
-        p = self.prob(features) * (1.0 - self.epsilon) + self.epsilon / np.float32(self.action_dim)
-        v = self.v(features)
+        features_p = self.l2_policy(features)
+        features_v = self.l2_v(features)
+        p = self.prob(features_p) * (1.0 - self.epsilon) + self.epsilon / np.float32(self.action_dim)
+        v = self.v(features_v)
         return v, p
 
     def compute_entropy(self, states):
@@ -253,7 +256,7 @@ class AC(tf.keras.Model):
         self.neg_scale = neg_scale
         self.gae_lambda = tf.Variable(gae_lambda, dtype=tf.float32, trainable=False)
         self.policy = CategoricalActor(state_shape, action_dim, epsilon_greedy)
-        self.optim = tf.keras.optimizers.Adam(learning_rate=lr, epsilon=1e-8, beta_1=0.9, beta_2=0.999)
+        self.optim = tf.keras.optimizers.RMSprop(learning_rate=lr, epsilon=1e-5, rho=0.99) #Adam(learning_rate=lr, epsilon=1e-8, beta_1=0.9, beta_2=0.999)
         self.step = tf.Variable(0, dtype=tf.int32)
         self.traj_length = tf.Variable(traj_length - 1, dtype=tf.int32, trainable=False)
         if split:

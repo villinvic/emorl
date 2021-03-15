@@ -34,7 +34,7 @@ class EvolutionServer:
 
         self.ID = ID
         self.env = gym.make(env_id)
-        self.env.frame_skip = 4
+        self.env.frame_skip = 3
         self.util = name2class[env_id]()
         self.state_shape = (self.util.state_dim*2,)
         self.action_dim = self.env.action_space.n
@@ -169,8 +169,8 @@ class EvolutionServer:
                         gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
                         q['pi'][i] += gaussian_noise
 
-                gaussian_noise = np.random.normal(loc=0, scale=0.1, size=q['r'].shape)
-                q['r'] = np.clip(q['r'] + gaussian_noise, 0, 1)# np.clip(q['r'] * (1 + gaussian_noise), 0, 1)
+                gaussian_noise = np.random.normal(loc=0, scale=0.5, size=q['r'].shape)
+                q['r'] = np.clip(q['r'] * (1 + gaussian_noise), 0, 1)
 
     def eval(self, player: Individual, max_frame):
         r = {
