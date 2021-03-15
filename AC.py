@@ -165,7 +165,7 @@ class CategoricalActor(tf.keras.Model):
         return self._compute_dist(states)["prob"]
 
     def value(self, states):
-        return self.v(self._compute_feature(states))
+        return self.v(self.l2_v(self._compute_feature(states)))
         
     def compute_all(self, states):
         features = self._compute_feature(states)
