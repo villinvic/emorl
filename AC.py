@@ -340,14 +340,14 @@ class AC(tf.keras.Model):
 
     def compute_gae(self, v, rewards, last_v):
         v = tf.transpose(v)
-        rewards= tf.transpose(rewards)
+        rewards = tf.transpose(rewards)
         reversed_sequence = [tf.reverse(t, [0]) for t in [v, rewards]]
         
         def bellman(future, present):
             val, r = present
             # m = tf.cast(tf.abs(r) < 0.9, tf.float32)
             # clipped_r = tf.clip_by_value(r, clip_value_min=-2.0, clip_value_max=2.0)
-            return (1. - self.gae_lambda) * val + self.gae_lambda * (r + (1.0-self.neg_scale)*relu(-r)  + self.gamma * future)
+            return (1. - self.gae_lambda) * val + self.gae_lambda * (r + (1.0-self.neg_scale)*relu(-r) + self.gamma * future)
         
         returns = tf.scan(bellman, reversed_sequence, last_v)
         returns = tf.reverse(returns, [0])
