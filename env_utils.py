@@ -38,7 +38,7 @@ class Pong(dict):
         return np.abs(np.float32(obs[4]) - last_pos)
 
     def is_no_op(self, action_id):
-        return action_id in [1]  # no act or no op ?
+        return action_id in [0]  # no act means no op or no move ?
 
 
 name2class = {'Pong-ramNoFrameskip-v4': Pong
