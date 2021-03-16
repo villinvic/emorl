@@ -202,7 +202,7 @@ class EvolutionServer:
                 r['no_op_rate'] += int(self.util.is_no_op(action))
                 distance_moved = self.util.pad_move(observation_, last_pos)
 
-                moved = int(distance_moved > 1e-3)
+                moved = int(distance_moved > 1e-5)
 
                 r['move_rate'] += moved
                 last_pos = observation_[4]
