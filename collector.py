@@ -143,12 +143,16 @@ class Collector:
         frontiers = nd_sort(scores, n_behavior)
         selected = []
         i = 0
+        sparse_select = None
+        sparse_frontier = None
         while len(selected) < self.population.size:
             if len(selected) + len(frontiers[i]) <= self.population.size:
                 selected.extend(frontiers[i])
 
             else:
-                selected.extend(cd_select(scores, frontiers[i], self.population.size-len(selected)))
+                sparse_select = cd_select(scores, frontiers[i], self.population.size-len(selected))
+                sparse_frontier = frontiers[i]
+                selected.extend(sparse_select)
             i += 1
         new_pop = np.empty((self.population.size,), dtype=LightIndividual)
         for i, index in enumerate(selected):
@@ -159,7 +163,7 @@ class Collector:
 
         self.population.individuals = new_pop
 
-        return scores, selected
+        return scores, selected, sparse_select, sparse_frontier
 
     def exit(self):
         print('Exiting...')
@@ -193,6 +197,8 @@ class Collector:
             time.sleep(6)
             start = True
             scores = None
+            sparse_select = None
+            sparse_frontier = None
             selected = None
             try:
                 while True:
@@ -202,11 +208,12 @@ class Collector:
                     if start:
                         start = False
                     else:
-                        self.plotter.update(self.population, scores, selected, self.generation-1)
+                        self.plotter.update(self.population, scores, selected, sparse_select, sparse_frontier,
+                                            self.generation-1)
                         self.plotter.plot()
 
                     offspring = self.receive_evolved()
-                    scores, selected = self.select(offspring)
+                    scores, selected, sparse_select, sparse_frontier = self.select(offspring)
 
                     print(self.population)
 

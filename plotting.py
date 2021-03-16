@@ -172,10 +172,12 @@ class PlotterV2:
         self.updated = False
         self.mean_ent_hist = []
 
-    def update(self, pop, scores, selected, gen):
+    def update(self, pop, scores, selected, sparse_select, sparse_frontier, gen):
         self.pop = pop
         self.scores = scores
         self.selected = selected
+        self.sparse_select = sparse_select
+        self.sparse_frontier = sparse_frontier
         self.gen = gen
         self.updated = True
 
@@ -209,14 +211,17 @@ class PlotterV2:
         bars.set_xticks(x)
         bars.set_xticklabels(data[-1].astype(int))
         bars.legend()
-
+        print(self.sparse_select, self.sparse_frontier)
         for index in range(len(self.scores[0])):
-            if index >= self.pop.size:
-                color = (1.0,0.6,0.6) if index in self.selected else (0.4,0.4,0.4)
+            if self.sparse_select is not None and index in self.sparse_frontier:
+                color = (0, 0, 1.0) if index not in self.sparse_select else (0.1, 0.7, 0.2)
             else:
-                color = 'r' if index in self.selected else 'k'
+                if index >= self.pop.size:
+                    color = (1.0,0.6,0.6) if index in self.selected else (0.4, 0.4, 0.4)
+                else:
+                    color = 'r' if index in self.selected else 'k'
 
-            opti.plot(*(0.5 * self.scores[:, index, 0] +
+            opti.plot(*(0 * self.scores[:, index, 0] +
                         self.scores[:, index, 1]), marker='o', color=color)
         opti.set_ylabel('Lasy')
         opti.set_xlabel('Busy')

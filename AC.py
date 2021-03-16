@@ -105,8 +105,7 @@ class CategoricalActor(tf.keras.Model):
         self.epsilon = tf.Variable(epsilon, name="Actor_epsilon", trainable=False, dtype=tf.float32)
 
         self.l1 = Dense(64, activation='relu', dtype='float32', name="critic_L1")
-        self.l2_policy = Dense(64, activation='relu', dtype='float32', name="L2")
-        self.l2_v = Dense(64, activation='relu', dtype='float32', name="L2")
+        self.l2 = Dense(64, activation='relu', dtype='float32', name="L2")
         self.prob = Dense(action_dim, dtype='float32', name="prob", activation="softmax")
 
         self.v = Dense(1, dtype='float32', name="value", activation="linear")
@@ -125,6 +124,7 @@ class CategoricalActor(tf.keras.Model):
 
     def _compute_feature(self, states):
         features = self.l1(states)
+        features = self.l2(features)
         return features
 
     def _compute_dist(self, states, eval=False):
@@ -136,7 +136,6 @@ class CategoricalActor(tf.keras.Model):
         :return: Categorical distribution
         """
         features = self._compute_feature(states)
-        features = self.l2_policy(features)
 
         if eval:
             probs = self.prob(features)
@@ -165,14 +164,12 @@ class CategoricalActor(tf.keras.Model):
         return self._compute_dist(states)["prob"]
 
     def value(self, states):
-        return self.v(self.l2_v(self._compute_feature(states)))
+        return self.v(self._compute_feature(states))
         
     def compute_all(self, states):
         features = self._compute_feature(states)
-        features_p = self.l2_policy(features)
-        features_v = self.l2_v(features)
-        p = self.prob(features_p) * (1.0 - self.epsilon) + self.epsilon / np.float32(self.action_dim)
-        v = self.v(features_v)
+        p = self.prob(features) * (1.0 - self.epsilon) + self.epsilon / np.float32(self.action_dim)
+        v = self.v(features)
         return v, p
 
     def compute_entropy(self, states):
@@ -232,6 +229,7 @@ class V(tf.keras.Model):
 
     def __init__(self, name='vf'):
         super().__init__(name=name)
+        self
 
         self.l1 = Dense(64, activation='elu', dtype='float32', name="v_L1")
         self.l2 = Dense(64, activation='elu', dtype='float32', name="L2")

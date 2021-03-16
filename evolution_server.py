@@ -25,8 +25,8 @@ import socket
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=128, batch_size=1, max_train=10, early_stop=7,
-                 round_length=100, eval_length=5000, subprocess=True, mutation_rate=0.5):
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=128, batch_size=1, max_train=1,
+                 early_stop=7, round_length=100, eval_length=5000, subprocess=True, mutation_rate=0.5):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -34,7 +34,6 @@ class EvolutionServer:
 
         self.ID = ID
         self.env = gym.make(env_id)
-        self.env.frame_skip = 3
         self.util = name2class[env_id]()
         self.state_shape = (self.util.state_dim*2,)
         self.action_dim = self.env.action_space.n
@@ -116,7 +115,7 @@ class EvolutionServer:
             # SPX for NN
             q1 = deepcopy(p1)
             # q2 = deepcopy(p1)
-            s = 64*64 * 3 +64*3 + 64*6 + 6 + 64 + 1 # 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
+            s = 13 * 64 + 64*65 + 65 * 6 + 65 * 1  # 5,447 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
             c = 0
             point = np.random.randint(0, s)
             for j in range(len(p1['pi'])):
@@ -142,6 +141,7 @@ class EvolutionServer:
                             # q2['pi'][j] = p2['pi'][j]
                             pass
                         c += len(p1['pi'][j])
+            print(c)
 
             # SBX for reward
             distance = np.fabs(p1['r'] - p2['r'])
@@ -169,7 +169,7 @@ class EvolutionServer:
                         gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
                         q['pi'][i] += gaussian_noise
 
-                gaussian_noise = np.random.normal(loc=0, scale=0.3, size=q['r'].shape)
+                gaussian_noise = np.random.normal(loc=0, scale=0.1, size=q['r'].shape)
                 q['r'] = np.clip(q['r'] * (1 + gaussian_noise), 0, 1)
 
     def eval(self, player: Individual, max_frame):
@@ -274,7 +274,7 @@ class EvolutionServer:
             top = -np.inf
             training_step = 0
             no_improvement_counter = 0
-            self.player.pi.reset_optim()
+            # self.player.pi.reset_optim()
             while time() - start_time < self.max_train * 60:
                 obs = self.play(self.player, self.traj_length, obs)
                 self.player.pi.train(self.trajectory['state'], self.trajectory['action'][:, :-1], self.trajectory['rew'][:, :-1], -1)

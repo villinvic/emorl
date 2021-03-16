@@ -41,6 +41,7 @@ class Pong(dict):
         return action_id in [1]  # no act or no op ?
 
 
-name2class = {'Pong-ram-v0': Pong}
+name2class = {'Pong-ramNoFrameskip-v4': Pong
+              }
 
 

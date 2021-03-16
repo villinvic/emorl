@@ -60,7 +60,7 @@ def cd_select(scores, indexes, size):
     distances_left = [0] * len(indexes)
     distances_right = [0] * len(indexes)
     distances = [0] * len(indexes)
-    comparing_score = scores[:, :, 1]
+    comparing_score = scores[:, :, -1]
 
     for i, index in enumerate(indexes):
         for index2 in indexes[:index:]:
