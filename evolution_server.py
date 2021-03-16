@@ -248,9 +248,11 @@ class EvolutionServer:
 
             self.trajectory['state'][0, frame_count] = observation
             self.trajectory['action'][0, frame_count] = action
+
+            aux_scale = 0.003
             self.trajectory['rew'][0, frame_count] = reward * player.reward_weight[0] +\
-                                                     0.01 * moved * player.reward_weight[1] +\
-                                                     0.01 * act * player.reward_weight[2]
+                                                     aux_scale * moved * player.reward_weight[1] +\
+                                                     aux_scale * act * player.reward_weight[2]
             self.trajectory['base_rew'][0, frame_count] = reward
 
             if done:
