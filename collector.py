@@ -172,7 +172,9 @@ class Collector:
 
         try:
             if not self.client_mode:
-                self.serializer.dump(self.population, 'run--' + str(datetime.now()) + '--' + str(self.generation-1))
+                ckpt_name = '--'.join([str(self.population.size), str(self.generation-1),
+                                       str(datetime.now()).strip(' ')])
+                self.serializer.dump(self.population, ckpt_name)
         except Exception as e:
             print('serializer failed :', e)
 
@@ -187,7 +189,7 @@ class Collector:
 
         else:
             if self.start_from is not None:
-                self.generation = int(self.start_from.split('--')[-1].split('.')[0])
+                self.generation = int(self.start_from.split('--')[1])
                 self.population = self.serializer.load(self.start_from)
             else:
                 pass

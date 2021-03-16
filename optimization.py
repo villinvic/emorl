@@ -57,32 +57,25 @@ def nd_sort(scores, n_objectives ):
 
 def cd_select(scores, indexes, size):
     indexes = np.array(indexes)
-    distances_left = [0] * len(indexes)
-    distances_right = [0] * len(indexes)
-    distances = [0] * len(indexes)
+    distances = [np.inf] * len(indexes)
+    distances_2 = [np.inf] * len(indexes)
     comparing_score = scores[:, :, -1]
 
     for i, index in enumerate(indexes):
         for index2 in indexes[:index:]:
             dist = distance(comparing_score[:, index], comparing_score[:, index2])
-            if dist > 0 and dist > distances_left[i]:
-                distances_left[i] = dist
-            elif dist < 0 and dist < distances_right[i]:
-                distances_right[i] = dist
-        distances[i] = distances_left[i] - distances_right[i]
+            if dist < distances[i]:
+                distances_2[i] = distances[i]
+                distances[i] = dist
+            elif dist < distances_2[i]:
+                distances_2[i] = dist
+        distances[i] += distances_2[i]
 
     return indexes[np.argsort(np.array(distances))][-size:]
 
 
 def distance(x1, x2):
-    d = 0
-    for i in range(len(x1)):
-        d += (x2[i] - x1[i]) * (-1)**i
-    return d
-
-
-
-
+    return np.sum(np.absolute(x2 - x1))
 
 
 

@@ -26,7 +26,7 @@ import socket
 class EvolutionServer:
 
     def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=128, batch_size=1, max_train=8,
-                 early_stop=7, round_length=100, eval_length=5000, subprocess=True, mutation_rate=0.5):
+                 early_stop=7, round_length=200, eval_length=5000, subprocess=True, mutation_rate=0.5):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -249,8 +249,8 @@ class EvolutionServer:
             self.trajectory['state'][0, frame_count] = observation
             self.trajectory['action'][0, frame_count] = action
 
-            aux_scale = 0.003
-            self.trajectory['rew'][0, frame_count] = reward * player.reward_weight[0] +\
+            aux_scale = 0.02
+            self.trajectory['rew'][0, frame_count] = 10 * reward * player.reward_weight[0] +\
                                                      aux_scale * moved * player.reward_weight[1] +\
                                                      aux_scale * act * player.reward_weight[2]
             self.trajectory['base_rew'][0, frame_count] = reward
