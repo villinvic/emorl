@@ -25,8 +25,8 @@ import socket
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=128, batch_size=1, max_train=8,
-                 early_stop=7, round_length=200, eval_length=5000, subprocess=True, mutation_rate=0.5):
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=128, batch_size=1, max_train=4,
+                 early_stop=7, round_length=100, eval_length=5000, subprocess=True, mutation_rate=0.9):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -91,7 +91,6 @@ class EvolutionServer:
     def amplification_factor(spread_factor, distribution_index):
         assert spread_factor >= 0, spread_factor
         assert distribution_index >= 0
-        print(2 / (2 - np.power(spread_factor, -(distribution_index + 1))), spread_factor)
         return 2 / (2 - np.power(spread_factor, -(distribution_index + 1)))
 
     @staticmethod
@@ -154,7 +153,6 @@ class EvolutionServer:
                     q1['r'] = x + 0.5 * beta2 * distance
             # q2['r'] = x + 0.5 * beta * (np.abs(p1['r'] - p2['r']))
 
-            print(q1['r'])
 
             offspring[offspring_index] = q1
             offspring_index += 1
@@ -169,8 +167,8 @@ class EvolutionServer:
                         gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
                         q['pi'][i] += gaussian_noise
 
-                gaussian_noise = np.random.normal(loc=0, scale=0.1, size=q['r'].shape)
-                q['r'] = np.clip(q['r'] * (1 + gaussian_noise), 0, 1)
+                gaussian_noise = np.random.normal(loc=0, scale=0.2, size=q['r'].shape)
+                q['r'] = np.clip(q['r'] * (1 + gaussian_noise), 0, np.inf)
 
     def eval(self, player: Individual, max_frame):
         r = {
@@ -249,10 +247,9 @@ class EvolutionServer:
             self.trajectory['state'][0, frame_count] = observation
             self.trajectory['action'][0, frame_count] = action
 
-            aux_scale = 0.02
-            self.trajectory['rew'][0, frame_count] = 10 * reward * player.reward_weight[0] +\
-                                                     aux_scale * moved * player.reward_weight[1] +\
-                                                     aux_scale * act * player.reward_weight[2]
+            self.trajectory['rew'][0, frame_count] = reward * player.reward_weight[0] +\
+                                                     moved * player.reward_weight[1] +\
+                                                     act * player.reward_weight[2]
             self.trajectory['base_rew'][0, frame_count] = reward
 
             if done:
