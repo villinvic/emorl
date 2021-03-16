@@ -202,7 +202,7 @@ class EvolutionServer:
                 r['no_op_rate'] += int(self.util.is_no_op(action))
                 distance_moved = self.util.pad_move(observation_, last_pos)
 
-                moved = int(distance_moved > 1e-5)
+                moved = int(distance_moved > 0)
 
                 r['move_rate'] += moved
                 last_pos = observation_[4]
@@ -237,7 +237,7 @@ class EvolutionServer:
             observation_ = self.util.preprocess(observation_)
             distance_moved = self.util.pad_move(observation_, last_pos)
 
-            moved = int(distance_moved > 1e-5)
+            moved = int(distance_moved > 0)
             last_pos = observation_[4]
             delta_score = self.util.score_delta(observation_)
             # win = delta_score - last_score_delta
