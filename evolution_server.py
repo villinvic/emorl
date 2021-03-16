@@ -182,7 +182,6 @@ class EvolutionServer:
         }
         frame_count = 0
         n_games = 0
-        last_pos = [0.0, 0.0]
         actions = [0] * 6
         dist = np.zeros((self.action_dim,), dtype=np.float32)
         while frame_count < max_frame:
@@ -193,6 +192,8 @@ class EvolutionServer:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
                 dist += dist_
                 actions[action] += 1
+                observation_, reward, done, info = self.env.step(action) # players pad only moves every two frames
+                last_pos = observation_[51]
                 observation_, reward, done, info = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
                 observation = np.concatenate([observation[len(observation)//2:],observation_])
@@ -200,12 +201,11 @@ class EvolutionServer:
                 if reward < 0:
                     r['total_punition'] += reward
                 r['no_op_rate'] += int(self.util.is_no_op(action))
-                distance_moved = self.util.pad_move(observation_, last_pos.pop(0))
+                distance_moved = self.util.pad_move(observation_, last_pos)
 
                 moved = int(distance_moved > 0)
 
                 r['move_rate'] += moved
-                last_pos.append(observation_[4])
 
                 frame_count += 1
             if done:
@@ -222,7 +222,6 @@ class EvolutionServer:
 
     def play(self, player: Individual, max_frame, observation=None):
         n_games = 0
-        last_pos = [0.0, 0.0]
         last_score_delta = 0
         actions = [0]*6
 
@@ -233,12 +232,13 @@ class EvolutionServer:
         for frame_count in range(max_frame):
             action = player.pi.policy.get_action(observation)
             actions[action] += 1
+            observation_, reward, done, info = self.env.step(action) # players pad only moves every two frames
+            last_pos = observation_[51]
             observation_, reward, done, info = self.env.step(action)
             observation_ = self.util.preprocess(observation_)
-            distance_moved = self.util.pad_move(observation_, last_pos.pop(0))
+            distance_moved = self.util.pad_move(observation_, last_pos)
 
             moved = int(distance_moved > 0)
-            last_pos.append(observation_[4])
             delta_score = self.util.score_delta(observation_)
             # win = delta_score - last_score_delta
             # last_score_delta = delta_score
