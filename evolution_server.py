@@ -193,7 +193,7 @@ class EvolutionServer:
                 dist += dist_
                 actions[action] += 1
                 observation_, reward, done, info = self.env.step(action) # players pad only moves every two frames
-                last_pos = observation_[51]
+                last_pos = self.util.preprocess(observation_)[4]
                 observation_, reward, done, info = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
                 observation = np.concatenate([observation[len(observation)//2:],observation_])
@@ -233,7 +233,7 @@ class EvolutionServer:
             action = player.pi.policy.get_action(observation)
             actions[action] += 1
             observation_, reward, done, info = self.env.step(action) # players pad only moves every two frames
-            last_pos = observation_[51]
+            last_pos = self.util.preprocess(observation_)[4]
             observation_, reward, done, info = self.env.step(action)
             observation_ = self.util.preprocess(observation_)
             distance_moved = self.util.pad_move(observation_, last_pos)
