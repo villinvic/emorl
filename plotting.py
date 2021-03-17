@@ -227,9 +227,11 @@ class PlotterV2:
         opti.set_xlabel('Busy')
         opti.set_title('Selected individuals')
 
-        entropy.plot(list(range(len(self.mean_ent_hist))), self.mean_ent_hist)
+        ticks = list(range(len(self.mean_ent_hist)))
+        entropy.plot(ticks, self.mean_ent_hist)
         entropy.set_ylabel('Entropy')
         entropy.set_xlabel('Iteration')
+        entropy.set_yticks(ticks)
         entropy.set_title('Top 10 mean entropy over iterations')
 
         fig.subplots_adjust(bottom=0.05, left=0.1, top=0.96, hspace=0.2, wspace=0.2)

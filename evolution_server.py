@@ -134,7 +134,7 @@ class EvolutionServer:
                         if c + len(p1['pi'][j]) > point > c:
                             q1['pi'][j][:point-c] = p2['pi'][j][:point-c]
                             # q2['pi'][j][point-c:] = p2['pi'][j][point-c:]
-                        elif c < point :
+                        elif c < point:
                             q1['pi'][j] = p2['pi'][j]
                         else:
                             # q2['pi'][j] = p2['pi'][j]
@@ -224,9 +224,7 @@ class EvolutionServer:
         return r
 
     def play(self, player: Individual, max_frame, observation=None):
-        n_games = 0
-        last_score_delta = 0
-        actions = [0]*6
+        actions = [0]*self.action_dim
 
         if observation is None:
             observation = self.util.preprocess(self.env.reset())

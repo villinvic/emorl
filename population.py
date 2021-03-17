@@ -42,7 +42,7 @@ class Individual:
 class LightIndividual:
     def __init__(self, goal_dim, generation=1):
 
-        self.reward_weight = np.clip(np.random.lognormal(-1, 3, (goal_dim,)), 0, 10) / 10.0
+        self.reward_weight = log_uniform(0, 5, (goal_dim,), base=10) / 1e5
         self.reward_weight[0] *= 2
         self.behavior_stats = {}
         self.gen = generation
@@ -83,3 +83,7 @@ class Population:
                  'gen:%d\n' % self.individuals[i].gen + \
                  'reward weights :' + str(self.individuals[i].reward_weight) + "\n"
         return x
+
+
+def log_uniform(low=0, high=1, size=None, base=np.e):
+    return np.power(base, np.random.uniform(low, high, size))
