@@ -192,22 +192,22 @@ class PlotterV2:
             data[0][i] = self.pop.individuals[i].behavior_stats['win_rate']
             data[1][i] = self.pop.individuals[i].behavior_stats['move_rate']
             data[2][i] = self.pop.individuals[i].behavior_stats['no_op_rate']
-            data[3][i] = self.pop.individuals[i].reward_weight[0] * 0.1
-            data[4][i] = self.pop.individuals[i].reward_weight[1] * 0.1
-            data[5][i] = self.pop.individuals[i].reward_weight[2] * 0.1
+            data[3][i] = self.pop.individuals[i].reward_weight[0] * 0.01
+            data[4][i] = self.pop.individuals[i].reward_weight[1]
+            data[5][i] = self.pop.individuals[i].reward_weight[2]
             ent += self.pop.individuals[i].behavior_stats['entropy']
             data[6][i] = self.pop.individuals[i].gen
         self.mean_ent_hist.append(ent/float(self.top))
-        rects1 = bars.bar(x - width, data[0], width, label='Winrate', color='y')
-        rects2 = bars.bar(x, data[1], width, label='Moverate', color='b')
-        rects1 = bars.bar(x + width, data[2], width, label='NOOPrate', color='r')
+        rects1 = bars.bar(x - width, data[0], width, label='Win rate', color='y')
+        rects2 = bars.bar(x, data[1], width, label='Move rate', color='b')
+        rects1 = bars.bar(x + width, data[2], width, label='NO_OP rate', color='r')
         rects1 = bars.bar(x - width, data[3], width/3.0, color='k')
         rects2 = bars.bar(x, data[4], width/3.0, color='k')
         rects1 = bars.bar(x + width, data[5], width/3.0, color='k')
 
         bars.set_ylabel('Scores')
-        bars.set_xlabel('Generations')
-        bars.set_title('Top %d scores' % self.top)
+        bars.set_xlabel('Individual Generations')
+        bars.set_title('Top %d scores, ranked by win rate' % self.top)
         bars.set_xticks(x)
         bars.set_xticklabels(data[-1].astype(int))
         bars.legend()
