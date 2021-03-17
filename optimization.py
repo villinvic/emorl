@@ -19,6 +19,16 @@ def rankmin(x):
     csum[1:] = counts[:-1].cumsum()
     return csum[inv]
 
+def is_dominated(x_scores, y_scores):
+    assert len(x_scores) == len(y_scores)
+
+    for i in range(len(x_scores)):
+        if x_scores[i] > y_scores[i]:
+            return True
+        elif x_scores[i] < y_scores[i]:
+            return False
+    return False
+
 
 def nd_sort(scores, n_objectives ):
     """
@@ -27,7 +37,6 @@ def nd_sort(scores, n_objectives ):
     frontiers = [[]]
     assert n_objectives > 1
     indexes = np.array(list(reversed(np.argsort(scores[0, :, 0]))))
-    weighted_score = scores[:, :, 0]*100 + scores[:, :, 1]
 
     for index in indexes:
         x = len(frontiers)
@@ -37,7 +46,7 @@ def nd_sort(scores, n_objectives ):
             for solution in frontiers[k]:
                 tmp = True
                 for objective_num in range(1, n_objectives):
-                    if weighted_score[objective_num][index] > weighted_score[objective_num][solution]:
+                    if is_dominated(scores[objective_num][index], scores[objective_num][solution]):
                         tmp = False
                         break
                 dominated = tmp
