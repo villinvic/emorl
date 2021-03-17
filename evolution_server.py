@@ -53,7 +53,7 @@ class EvolutionServer:
         self.early_stop = early_stop
         self.round_length = round_length
         self.batch_size = batch_size
-        self.eval_length = eval_length
+        self.min_eval = min_eval
 
         self.trajectory = {
             'state': np.zeros((batch_size, traj_length)+self.state_shape, dtype=np.float32),
@@ -302,7 +302,7 @@ class EvolutionServer:
     def evaluate(self, trained):
         for individual in trained:
             self.player.set_weights(individual['weights'])
-            individual['eval'] = self.eval(self.player, self.eval_length)
+            individual['eval'] = self.eval(self.player, self.min_eval)
 
     def run(self):
         print('[%d] started' % self.ID)
