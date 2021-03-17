@@ -26,7 +26,7 @@ import socket
 class EvolutionServer:
 
     def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=128, batch_size=1, max_train=10,
-                 early_stop=7, round_length=200, eval_length=5000, subprocess=True, mutation_rate=0.7):
+                 early_stop=7, round_length=200, min_eval=5000, subprocess=True, mutation_rate=0.7):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -170,7 +170,7 @@ class EvolutionServer:
                 gaussian_noise = np.random.normal(loc=0, scale=0.2, size=q['r'].shape)
                 q['r'] = np.clip(q['r'] * (1 + gaussian_noise), 0, np.inf)
 
-    def eval(self, player: Individual, max_frame):
+    def eval(self, player: Individual, min_frame):
         r = {
             'game_reward': 0.0,
             'avg_length': 0.0,
@@ -184,11 +184,11 @@ class EvolutionServer:
         n_games = 0
         actions = [0] * 6
         dist = np.zeros((self.action_dim,), dtype=np.float32)
-        while frame_count < max_frame:
+        while frame_count < min_frame:
             done = False
             observation = self.util.preprocess(self.env.reset())
             observation = np.concatenate([observation, observation])
-            while not done and frame_count < max_frame:
+            while not done:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
                 dist += dist_
                 actions[action] += 1
@@ -212,11 +212,11 @@ class EvolutionServer:
                 n_games += 1
 
         print(actions)
-        r['avg_length'] = max_frame / float(n_games + 1)
+        r['avg_length'] = frame_count / float(n_games + 1)
         r['win_rate'] = (np.abs(r['game_reward'] - r['total_punition'])) / float(np.abs(r['game_reward'] - 2 * r['total_punition']))
-        r['no_op_rate'] = r['no_op_rate'] / float(max_frame)
-        r['move_rate'] = r['move_rate'] / float(max_frame)
-        dist /= float(max_frame)
+        r['no_op_rate'] = r['no_op_rate'] / float(frame_count)
+        r['move_rate'] = r['move_rate'] / float(frame_count)
+        dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist+1e-8) * dist)
         return r
 

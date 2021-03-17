@@ -192,9 +192,9 @@ class PlotterV2:
             data[0][i] = self.pop.individuals[i].behavior_stats['win_rate']
             data[1][i] = self.pop.individuals[i].behavior_stats['move_rate']
             data[2][i] = self.pop.individuals[i].behavior_stats['no_op_rate']
-            data[3][i] = self.pop.individuals[i].reward_weight[0] * 0.01
-            data[4][i] = self.pop.individuals[i].reward_weight[1]
-            data[5][i] = self.pop.individuals[i].reward_weight[2]
+            data[3][i] = self.pop.individuals[i].reward_weight[0] * 0.1
+            data[4][i] = self.pop.individuals[i].reward_weight[1] * 0.1
+            data[5][i] = self.pop.individuals[i].reward_weight[2] * 0.1
             ent += self.pop.individuals[i].behavior_stats['entropy']
             data[6][i] = self.pop.individuals[i].gen
         self.mean_ent_hist.append(ent/float(self.top))

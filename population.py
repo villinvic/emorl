@@ -42,9 +42,8 @@ class Individual:
 class LightIndividual:
     def __init__(self, goal_dim, generation=1):
 
-        lows = [1, 0, 0]
-        highs = [10, 1, 1]
-        self.reward_weight = np.random.uniform(lows, highs, size=(goal_dim,))
+        self.reward_weight = np.random.lognormal(-1, 2, (goal_dim,))
+        self.reward_weight = np.exp(-self.reward_weight)
         self.behavior_stats = {}
         self.gen = generation
         self.model_weights = None
