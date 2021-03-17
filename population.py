@@ -42,7 +42,7 @@ class Individual:
 class LightIndividual:
     def __init__(self, goal_dim, generation=1):
 
-        self.reward_weight = np.random.lognormal(-1, 3, (goal_dim,))
+        self.reward_weight = np.clip(np.random.lognormal(-1, 3, (goal_dim,)), 0, 10) / 10.0
         self.reward_weight[0] *= 2
         self.behavior_stats = {}
         self.gen = generation
