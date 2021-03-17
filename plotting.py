@@ -217,7 +217,7 @@ class PlotterV2:
                 color = (0, 0, 1.0) if index not in self.sparse_select else (0.1, 0.7, 0.2)
             else:
                 if index >= self.pop.size:
-                    color = (1.0,0.6,0.6) if index in self.selected else (0.4, 0.4, 0.4)
+                    color = (1.0, 0.6, 0.6) if index in self.selected else (0.4, 0.4, 0.4)
                 else:
                     color = 'r' if index in self.selected else 'k'
 
@@ -236,3 +236,12 @@ class PlotterV2:
 
         fig.savefig(self.path+'iteration_%d.png' % self.gen)
         plt.close(fig)
+
+'''
+R+
+wr1 > wr2
+aux1 ? aux2
+=> f(wr1, aux1) > f(wr2, aux2), f(a,b) != f(a)
+
+f(a,b) = a 
+'''

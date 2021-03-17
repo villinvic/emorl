@@ -195,9 +195,10 @@ class EvolutionServer:
                 actions[action] += 1
                 observation_, reward, done, info = self.env.step(action)  # players pad only moves every two frames
                 last_pos = self.util.preprocess(observation_)[4]
-                observation_, reward, done, info = self.env.step(action)
+                observation_, reward2, done, info = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
                 observation = np.concatenate([observation[len(observation)//2:], observation_])
+                reward += reward2
                 r['game_reward'] += reward
                 if reward < 0:
                     r['total_punition'] += reward
@@ -234,9 +235,10 @@ class EvolutionServer:
         for frame_count in range(max_frame):
             action = player.pi.policy.get_action(observation)
             actions[action] += 1
-            observation_, reward, done, info = self.env.step(action) # players pad only moves every two frames
+            observation_, reward, done, info = self.env.step(action)  # players pad only moves every two frames
             last_pos = self.util.preprocess(observation_)[4]
-            observation_, reward, done, info = self.env.step(action)
+            observation_, reward2, done, info = self.env.step(action)
+            reward += reward2
             observation_ = self.util.preprocess(observation_)
             distance_moved = self.util.pad_move(observation_, last_pos)
 
