@@ -42,8 +42,7 @@ class Individual:
 class LightIndividual:
     def __init__(self, goal_dim, generation=1):
 
-        self.reward_weight = log_uniform(0, 5, (goal_dim,), base=10) / 1e5
-        self.reward_weight[0] *= 2
+        self.reward_weight = log_uniform(0, 3, (goal_dim,), base=10) / 1e3
         self.behavior_stats = {}
         self.gen = generation
         self.model_weights = None
@@ -75,6 +74,8 @@ class Population:
             '''
             self.individuals[i].model_weights = w['pi']
 
+        self.history = {}
+
     def __repr__(self):
         x = ""
         for i in range(self.size):
@@ -83,6 +84,18 @@ class Population:
                  'gen:%d\n' % self.individuals[i].gen + \
                  'reward weights :' + str(self.individuals[i].reward_weight) + "\n"
         return x
+
+    def track_evolution(self, gen):
+        data = {
+            'mean_entropy': np.mean([x.behavior_stats['entropy'] for x in self.individuals]),
+            'mean_weights': np.mean(np.array([list(x.reward_weight) for x in self.individuals]), axis=-1),
+            'min_weights': np.min(np.array([list(x.reward_weight) for x in self.individuals]), axis=-1),
+            'max_weights': np.max(np.array([list(x.reward_weight) for x in self.individuals]), axis=-1),
+            'avg_score': np.mean([x.behavior_stats['game_reward'] for x in self.individuals]),
+            'worst_score': np.min([x.behavior_stats['game_reward'] for x in self.individuals]),
+            'best_score': np.max([x.behavior_stats['game_reward'] for x in self.individuals]),
+        }
+        self.history.update({gen: data})
 
 
 def log_uniform(low=0, high=1, size=None, base=np.e):
