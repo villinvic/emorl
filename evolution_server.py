@@ -179,6 +179,7 @@ class EvolutionServer:
             'move_rate': 0.0,
             'win_rate': 0.0,
             'entropy': 0.0,
+            'eval_length': 0,
         }
         frame_count = 0
         n_games = 0
@@ -192,11 +193,11 @@ class EvolutionServer:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
                 dist += dist_
                 actions[action] += 1
-                observation_, reward, done, info = self.env.step(action) # players pad only moves every two frames
+                observation_, reward, done, info = self.env.step(action)  # players pad only moves every two frames
                 last_pos = self.util.preprocess(observation_)[4]
                 observation_, reward, done, info = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
-                observation = np.concatenate([observation[len(observation)//2:],observation_])
+                observation = np.concatenate([observation[len(observation)//2:], observation_])
                 r['game_reward'] += reward
                 if reward < 0:
                     r['total_punition'] += reward
@@ -208,16 +209,17 @@ class EvolutionServer:
                 r['move_rate'] += moved
 
                 frame_count += 1
-            if done:
-                n_games += 1
+
+            n_games += 1
 
         print(actions)
-        r['avg_length'] = frame_count / float(n_games + 1)
+        r['avg_length'] = frame_count / float(n_games)
         r['win_rate'] = (np.abs(r['game_reward'] - r['total_punition'])) / float(np.abs(r['game_reward'] - 2 * r['total_punition']))
         r['no_op_rate'] = r['no_op_rate'] / float(frame_count)
         r['move_rate'] = r['move_rate'] / float(frame_count)
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist+1e-8) * dist)
+        r['eval_length'] = frame_count
         return r
 
     def play(self, player: Individual, max_frame, observation=None):
