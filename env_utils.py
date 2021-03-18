@@ -53,8 +53,8 @@ class Boxing(dict):
 
 
         self.indexes = np.array([value for value in self.values()], dtype=np.int32)
-        self.centers = np.array([127, 127, 127, 127, 0, 0, 0], dtype=np.float32)
-        self.scales = np.array([0.005, 0.005, 0.005, 0.005, 0.01, 0.01, 0.01], dtype=np.float32)
+        self.centers = np.array([55, 45, 55, 45, 0, 0, 0], dtype=np.float32)
+        self.scales = np.array([0.05, 0.05, 0.05, 0.05, 0.01, 0.01, 0.01], dtype=np.float32)
         self.state_dim = len(self.indexes)
 
         self['objectives'] = ['win_rate', 'avg_length', 'mean_distance']
@@ -86,7 +86,7 @@ class Boxing(dict):
         injury = obs[5 + self.state_dim] - obs[5]
         damage = obs[4 + self.state_dim] - obs[4]
 
-        return damage / self.scales[4], injury / self.scales[5]
+        return np.clip(damage / self.scales[4], 0, 2), np.clip(injury / self.scales[5], 0, 2)
 
 
 name2class = {'Pong-ramNoFrameskip-v4': Pong('Pong-ramNoFrameskip-v4'),
