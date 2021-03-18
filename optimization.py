@@ -30,7 +30,7 @@ def is_dominated(x_scores, y_scores):
     return False
 
 
-def nd_sort(scores, n_objectives ):
+def nd_sort(scores, n_objectives):
     """
     builds frontiers, descending sort
     """
