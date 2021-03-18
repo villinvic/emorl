@@ -20,7 +20,7 @@ class RLtest:
 
         self.env = gym.make(env_id)
         self.env.frame_skip = 4
-        self.util = name2class[env_id]()
+        self.util = name2class[env_id]
         self.state_shape = (self.util.state_dim * 2,)
         self.action_dim = self.env.action_space.n
         self.nn = AC.AC(self.state_shape, self.action_dim, 0.01, alpha, gamma, 0, 1, traj_length=traj, batch_size=batch)

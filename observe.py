@@ -25,11 +25,11 @@ class PopulationObserver:
     def __init__(self, ckpt, path='checkpoint/', env_id='Pong-ramNoFrameskip-v4', slow_factor=0.01):
 
         self.slow_factor = slow_factor
-        self.util = name2class[env_id]()
+        self.util = name2class[env_id]
         self.serializer = Serializer(path)
         self.to_observe: Population = self.serializer.load(ckpt)
         self.env = gym.make(env_id)
-        self.util = name2class[env_id]()
+        self.util = name2class[env_id]
         self.state_shape = (self.util.state_dim * 2,)
         self.action_dim = self.env.action_space.n
         self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim)

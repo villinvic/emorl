@@ -9,7 +9,6 @@ Observations : None
 """
 
 # == Imports ==
-import numpy as np
 from AC import AC
 from behavior import *
 # =============

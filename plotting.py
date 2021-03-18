@@ -190,8 +190,8 @@ class PlotterV2:
         ent = 0
         for i in range(self.top):
             data[0][i] = self.pop.individuals[i].behavior_stats['win_rate']
-            data[1][i] = self.pop.individuals[i].behavior_stats['move_rate']
-            data[2][i] = self.pop.individuals[i].behavior_stats['no_op_rate']
+            data[1][i] = self.pop.individuals[i].behavior_stats['avg_length']
+            data[2][i] = self.pop.individuals[i].behavior_stats['mean_distance']
             data[3][i] = self.pop.individuals[i].reward_weight[0] * 0.1
             data[4][i] = self.pop.individuals[i].reward_weight[1] * 0.1
             data[5][i] = self.pop.individuals[i].reward_weight[2] * 0.1
@@ -199,8 +199,8 @@ class PlotterV2:
             data[6][i] = self.pop.individuals[i].gen
         self.mean_ent_hist.append(ent/float(self.top))
         rects1 = bars.bar(x - width, data[0], width, label='Win rate', color='y')
-        rects2 = bars.bar(x, data[1], width, label='Move rate', color='b')
-        rects1 = bars.bar(x + width, data[2], width, label='NO_OP rate', color='r')
+        rects2 = bars.bar(x,  data[1]/1786.0, width, label='Duration', color='b')
+        rects1 = bars.bar(x + width, data[2] * 5, width, label='Distance', color='r')
         rects1 = bars.bar(x - width, data[3], width/3.0, color='k')
         rects2 = bars.bar(x, data[4], width/3.0, color='k')
         rects1 = bars.bar(x + width, data[5], width/3.0, color='k')
@@ -221,10 +221,9 @@ class PlotterV2:
                 else:
                     color = 'r' if index in self.selected else 'k'
 
-            opti.plot(*(0.01 * self.scores[:, index, 0] +
-                        self.scores[:, index, 1]), marker='o', color=color)
-        opti.set_ylabel('Lasy')
-        opti.set_xlabel('Busy')
+            opti.plot(*self.scores[:, index, 1], marker='o', color=color)
+        opti.set_ylabel('Defensive')
+        opti.set_xlabel('Aggressive')
         opti.set_title('Selected individuals')
 
         ticks = list(range(len(self.mean_ent_hist)))

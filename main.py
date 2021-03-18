@@ -20,7 +20,8 @@ import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
-def RUN(env='Pong-ramNoFrameskip-v4', client_mode=False, collector_ip=None, size=15, n_server=4, n_send=1, checkpoint_dir='checkpoint/', start_from=None):
+def RUN(env='Boxing-ramDeterministic-v4', client_mode=False, collector_ip=None, size=15, n_server=4, n_send=1,
+        checkpoint_dir='checkpoint/', start_from=None):
 
     if start_from == 'latest':
         pass

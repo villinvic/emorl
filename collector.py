@@ -44,7 +44,7 @@ class Collector:
 
         if not client_mode:
 
-            self.util = name2class[env_id]()
+            self.util = name2class[env_id]
             dummy = gym.make(self.util.name)
 
 
