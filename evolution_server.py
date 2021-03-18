@@ -26,7 +26,7 @@ import socket
 class EvolutionServer:
 
     def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=128, batch_size=1, max_train=7,
-                 early_stop=7, round_length=200, min_eval=5000, subprocess=True, mutation_rate=0.5):
+                 early_stop=7, round_length=200, min_eval=5000, min_games=3, subprocess=True, mutation_rate=0.5):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -37,7 +37,6 @@ class EvolutionServer:
         self.util = name2class[env_id]()
         self.state_shape = (self.util.state_dim*2,)
         self.action_dim = self.env.action_space.n
-        self.indicators = Indicator(dummy)
         self.mutation_rate = mutation_rate
         self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim, traj_length=traj_length)
 
@@ -54,6 +53,7 @@ class EvolutionServer:
         self.round_length = round_length
         self.batch_size = batch_size
         self.min_eval = min_eval
+        self.min_games = min_games
 
         self.trajectory = {
             'state': np.zeros((batch_size, traj_length)+self.state_shape, dtype=np.float32),
@@ -185,7 +185,7 @@ class EvolutionServer:
         n_games = 0
         actions = [0] * 6
         dist = np.zeros((self.action_dim,), dtype=np.float32)
-        while frame_count < min_frame:
+        while frame_count < min_frame or n_games <= self.min_games:
             done = False
             observation = self.util.preprocess(self.env.reset())
             observation = np.concatenate([observation, observation])
