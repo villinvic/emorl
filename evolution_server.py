@@ -221,7 +221,10 @@ class EvolutionServer:
 
         print(actions)
         r['avg_length'] = frame_count / float(n_games)
-        r['win_rate'] = r['win_rate'] / float(n_games)  #(np.abs(r['game_reward'] - r['total_punition'])) / float(np.abs(r['game_reward'] - 2 * r['total_punition']))
+        r['win_rate'] = r['win_rate'] / float(n_games) #(np.abs(r['game_reward'] - r['total_punition'])) / float(np.abs(r['game_reward'] - 2 * r['total_punition']))
+        if r['game_reward'] > 0:
+            # Helps ranking at the beginning
+            r['win_rate'] += 0.0001 * (np.abs(r['game_reward'] - r['total_punition'])) / float(np.abs(r['game_reward'] - 2 * r['total_punition']))
         #  r['no_op_rate'] = r['no_op_rate'] / float(frame_count)
         #  r['move_rate'] = r['move_rate'] / float(frame_count)
         r['mean_distance'] = r['mean_distance'] / float(frame_count)
