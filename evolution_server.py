@@ -260,7 +260,7 @@ class EvolutionServer:
 
             self.trajectory['rew'][0, frame_count] = win * player.reward_weight[0] +\
                                                      dmg * player.reward_weight[1] +\
-                                                     injury * player.reward_weight[2]
+                                                     - injury * player.reward_weight[2]
 
             self.trajectory['base_rew'][0, frame_count] = reward2
 
