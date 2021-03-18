@@ -203,6 +203,7 @@ class EvolutionServer:
                 r['game_reward'] += reward2
                 if reward2 < 0:
                     r['total_punition'] += reward2
+
                 r['mean_distance'] += self.util.distance(observation_)
                 r['win_rate'] += int(self.util.win(done, observation_) > 0)
                 '''
@@ -220,7 +221,7 @@ class EvolutionServer:
 
         print(actions)
         r['avg_length'] = frame_count / float(n_games)
-        r['win_rate'] = (np.abs(r['game_reward'] - r['total_punition'])) / float(np.abs(r['game_reward'] - 2 * r['total_punition']))
+        r['win_rate'] = r['win_rate'] / float(n_games)  #(np.abs(r['game_reward'] - r['total_punition'])) / float(np.abs(r['game_reward'] - 2 * r['total_punition']))
         #  r['no_op_rate'] = r['no_op_rate'] / float(frame_count)
         #  r['move_rate'] = r['move_rate'] / float(frame_count)
         r['mean_distance'] = r['mean_distance'] / float(frame_count)

@@ -54,7 +54,7 @@ class Boxing(dict):
 
         self.indexes = np.array([value for value in self.values()], dtype=np.int32)
         self.centers = np.array([127, 127, 127, 127, 0, 0, 0], dtype=np.float32)
-        self.scales = np.array([0.005, 0.005, 0.005, 0.005, 0.01, 0.01, 0.005], dtype=np.float32)
+        self.scales = np.array([0.005, 0.005, 0.005, 0.005, 0.01, 0.01, 0.01], dtype=np.float32)
         self.state_dim = len(self.indexes)
 
         self['objectives'] = ['win_rate', 'avg_length', 'mean_distance']
@@ -75,7 +75,7 @@ class Boxing(dict):
     def win(self, done, obs):
         if done:
             d = obs[4] - obs[5]
-            if d > 0:
+            if d > 50 or (d > 0 and obs[-1] > 1e-4):
                 return 1
             elif d < 0:
                 return -1
