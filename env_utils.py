@@ -74,7 +74,7 @@ class Boxing(dict):
 
     def win(self, done, obs):
         if done:
-            d = obs[4] - obs[5]
+            d = obs[4]/self.scales[4] - obs[5]/self.scales[5]
             if d > 50 or (d > 0 and obs[-1] > 1e-4):
                 return 1
             elif d < 0:
