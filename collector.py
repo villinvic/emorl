@@ -141,7 +141,7 @@ class Collector:
             for index in range(len(offspring)):
                 scores[objective_num, index+self.population.size] = function(offspring[index])
 
-        frontiers = nd_sort(scores, n_behavior, epsilon)
+        frontiers = nd_sort(scores, n_behavior, self.epsilon)
         selected = []
         i = 0
         sparse_select = None

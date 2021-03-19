@@ -29,10 +29,10 @@ def is_dominated(x_scores, y_scores, epsilon):
         else:
             eps = epsilon
 
-        if x_scores[i] > y_scores[i]:
-            return False
-        elif x_scores[i] * (1 + eps) < y_scores[i]:
+        if x_scores[i] > y_scores[i] + eps:
             return True
+        elif x_scores[i] + eps < y_scores[i]:
+            return False
 
     return False
 
