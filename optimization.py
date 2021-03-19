@@ -19,24 +19,40 @@ def rankmin(x):
     csum[1:] = counts[:-1].cumsum()
     return csum[inv]
 
-def is_dominated(x_scores, y_scores):
+
+def is_dominated(x_scores, y_scores, epsilon):
     assert len(x_scores) == len(y_scores)
 
     for i in range(len(x_scores)):
+        if i != 0:
+            eps = 0
+        else:
+            eps = epsilon
+
         if x_scores[i] > y_scores[i]:
-            return True
-        elif x_scores[i] < y_scores[i]:
             return False
+        elif x_scores[i] * (1 + eps) < y_scores[i]:
+            return True
+
     return False
 
 
-def nd_sort(scores, n_objectives):
+def argsort_with_order(seq):
+    '''
+    supposing there is only one sub objective
+    '''
+
+    with_fields = np.core.records.fromarrays(seq.transpose(), names='x, y', formats='f8, f8')
+    return list(np.argsort(with_fields, order=('x', 'y')))
+
+
+def nd_sort(scores, n_objectives, epsilon):
     """
     builds frontiers, descending sort
     """
     frontiers = [[]]
     assert n_objectives > 1
-    indexes = np.array(list(reversed(np.argsort(scores[0, :, 0]))))
+    indexes = np.array(list(reversed(argsort_with_order(scores[0, :, :]))))
 
     for index in indexes:
         x = len(frontiers)
@@ -45,8 +61,8 @@ def nd_sort(scores, n_objectives):
             dominated = False
             for solution in frontiers[k]:
                 tmp = True
-                for objective_num in range(1, n_objectives):
-                    if is_dominated(scores[objective_num][index], scores[objective_num][solution]):
+                for objective_num in range(0, n_objectives):
+                    if is_dominated(scores[objective_num][index], scores[objective_num][solution], epsilon):
                         tmp = False
                         break
                 dominated = tmp

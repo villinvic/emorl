@@ -49,7 +49,7 @@ class PopulationObserver:
             observation = np.concatenate([observation, observation])
             while not done:
                 self.env.render()
-                action, dist_ = self.player.pi.policy.get_action(observation, return_dist=True, eval=True)
+                action = self.player.pi.policy.get_action(observation, eval=True)
                 observation_, _, done, _ = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
                 observation = np.concatenate([observation[len(observation) // 2:], observation_])

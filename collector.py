@@ -29,7 +29,7 @@ from datetime import datetime
 class EXIT(Exception) : pass
 
 class Collector:
-    def __init__(self, env_id, size, n_server, n_send, checkpoint_dir='checkpoint/', start_from=None,
+    def __init__(self, env_id, size, n_server, n_send, epsilon, checkpoint_dir='checkpoint/', start_from=None,
                  client_mode=False, ip=None):
         self.client_mode = client_mode
 
@@ -52,6 +52,7 @@ class Collector:
             self.action_dim = dummy.action_space.n
             self.goal_dim = self.util.goal_dim
             self.n_send = n_send
+            self.epsilon = epsilon
             self.behavior_functions = self.util.behavior_functions
             self.size = size
             self.ckpt_dir = checkpoint_dir
@@ -140,7 +141,7 @@ class Collector:
             for index in range(len(offspring)):
                 scores[objective_num, index+self.population.size] = function(offspring[index])
 
-        frontiers = nd_sort(scores, n_behavior)
+        frontiers = nd_sort(scores, n_behavior, epsilon)
         selected = []
         i = 0
         sparse_select = None
