@@ -75,12 +75,11 @@ class Boxing(dict):
     def win(self, done, obs):
         if done:
             d = obs[4]/self.scales[4] - obs[5]/self.scales[5]
-            if d > 35:
+            if d > 50:
                 return 1
-            elif d < 0:
+            else :
                 return -1
 
-        return 0
 
     def compute_damage(self, obs):
         injury = obs[5 + self.state_dim] - obs[5]
