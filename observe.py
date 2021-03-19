@@ -22,7 +22,7 @@ from env_utils import name2class
 
 
 class PopulationObserver:
-    def __init__(self, ckpt, path='checkpoint/', env_id='Pong-ramNoFrameskip-v4', slow_factor=0.01):
+    def __init__(self, ckpt, path='checkpoint/', env_id='Boxing-ramDeterministic-v4', slow_factor=0.01):
 
         self.slow_factor = slow_factor
         self.util = name2class[env_id]
@@ -50,7 +50,6 @@ class PopulationObserver:
             while not done:
                 self.env.render()
                 action, dist_ = self.player.pi.policy.get_action(observation, return_dist=True, eval=True)
-                observation_, _, _, _ = self.env.step(action)  # players pad only moves every two frames
                 observation_, _, done, _ = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
                 observation = np.concatenate([observation[len(observation) // 2:], observation_])

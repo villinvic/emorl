@@ -200,7 +200,7 @@ class PlotterV2:
         self.mean_ent_hist.append(ent/float(self.top))
         rects1 = bars.bar(x - width, data[0], width, label='Win rate', color='y')
         rects2 = bars.bar(x,  data[1]/1786.0, width, label='Duration', color='b')
-        rects1 = bars.bar(x + width, data[2] * 5, width, label='Distance', color='r')
+        rects1 = bars.bar(x + width, data[2] * 0.5, width, label='Distance', color='r')
         rects1 = bars.bar(x - width, data[3], width/3.0, color='k')
         rects2 = bars.bar(x, data[4], width/3.0, color='k')
         rects1 = bars.bar(x + width, data[5], width/3.0, color='k')
