@@ -79,6 +79,8 @@ class Boxing(dict):
                 return 1
             else :
                 return -1
+                
+        return 0
 
 
     def compute_damage(self, obs):
