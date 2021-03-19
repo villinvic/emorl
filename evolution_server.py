@@ -148,9 +148,9 @@ class EvolutionServer:
             for j in range(len(p1['r'])):
                 beta1, beta2 = self.SBX_beta(5, p1['r'][j], p2['r'][j], distance[j])
                 if np.random.random() < 0.5:
-                    q1['r'] = x - 0.5 * beta1 * distance
+                    q1['r'] = np.clip(x - 0.5 * beta1 * distance, 0, np.inf)
                 else:
-                    q1['r'] = x + 0.5 * beta2 * distance
+                    q1['r'] = np.clip(x + 0.5 * beta2 * distance, 0, np.inf)
             # q2['r'] = x + 0.5 * beta * (np.abs(p1['r'] - p2['r']))
 
 

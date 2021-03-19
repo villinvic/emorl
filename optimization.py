@@ -10,6 +10,7 @@ Observations : None
 
 # == Imports ==
 import numpy as np
+from copy import deepcopy
 # =============
 
 
@@ -84,7 +85,7 @@ def cd_select(scores, indexes, size):
     indexes = np.array(indexes)
     distances = [np.inf] * len(indexes)
     distances_2 = [np.inf] * len(indexes)
-    comparing_score = scores[:, :, -1]
+    comparing_score = deepcopy(scores[:, :, -1])
     comparing_score[:, 0] /= 1790.0
     comparing_score[:, 0] /= 1.7
 
