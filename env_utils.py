@@ -75,7 +75,7 @@ class Boxing(dict):
     def win(self, done, obs):
         if done:
             d = obs[4]/self.scales[4] - obs[5]/self.scales[5]
-            if d > 20:
+            if d > 35:
                 return 1
             elif d < 0:
                 return -1

@@ -85,6 +85,8 @@ def cd_select(scores, indexes, size):
     distances = [np.inf] * len(indexes)
     distances_2 = [np.inf] * len(indexes)
     comparing_score = scores[:, :, -1]
+    comparing_score[:, 0] /= 1790.0
+    comparing_score[:, 0] /= 1.7
 
     for i, index in enumerate(indexes):
         for index2 in indexes[:index:]:
