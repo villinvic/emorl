@@ -205,7 +205,7 @@ class EvolutionServer:
                     r['total_punition'] += reward2
 
                 r['mean_distance'] += self.util.distance(observation_)
-                r['win_rate'] += int(self.util.win(done, observation_) > 0)
+                # r['win_rate'] += int(self.util.win(done, observation_) > 0)
 
                 r['no_op_rate'] += int(self.util.is_no_op(action))
                 distance_moved = self.util.pad_move(observation_, last_pos)
@@ -252,14 +252,14 @@ class EvolutionServer:
             # win = delta_score - last_score_delta
             # last_score_delta = delta_score
             act = (int(self.util.is_no_op(action)) - 1)
-            win = self.util.win(done, observation_)
+            # win = self.util.win(done, observation_)
             observation = np.concatenate([observation[len(observation) // 2:], observation_])
             #  dmg, injury = self.util.compute_damage(observation)
 
             self.trajectory['state'][0, frame_count] = observation
             self.trajectory['action'][0, frame_count] = action
 
-            self.trajectory['rew'][0, frame_count] = 10* win * player.reward_weight[0] +\
+            self.trajectory['rew'][0, frame_count] = 10* reward * player.reward_weight[0] +\
                                                      moved * player.reward_weight[1] +\
                                                      act * player.reward_weight[2]
 
