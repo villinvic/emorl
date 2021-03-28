@@ -26,7 +26,7 @@ import socket
 class EvolutionServer:
 
     def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=128, batch_size=1, max_train=9,
-                 early_stop=7, round_length=200, min_eval=5000, min_games=10, subprocess=True, mutation_rate=0.5):
+                 early_stop=7, round_length=200, min_eval=5000, min_games=1, subprocess=True, mutation_rate=0.5):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -175,8 +175,8 @@ class EvolutionServer:
             'game_reward': 0.0,
             'avg_length': 0.0,
             'total_punition': 0.0,
-            # 'no_op_rate': 0.0,
-            # 'move_rate': 0.0,
+            'no_op_rate': 0.0,
+            'move_rate': 0.0,
             'mean_distance': 0.0,
             'win_rate': 0.0,
             'entropy': 0.0,
@@ -194,26 +194,26 @@ class EvolutionServer:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
                 dist += dist_
                 actions[action] += 1
-                #  observation_, reward, done, info = self.env.step(action)  # players pad only moves every two frames
-                #  last_pos = self.util.preprocess(observation_)[4]
+                observation_, reward, done, info = self.env.step(action)  # players pad only moves every two frames
+                last_pos = self.util.preprocess(observation_)[4]
                 observation_, reward2, done, info = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
                 observation = np.concatenate([observation[len(observation)//2:], observation_])
-                #  reward += reward2
+                reward += reward2
                 r['game_reward'] += reward2
                 if reward2 < 0:
                     r['total_punition'] += reward2
 
                 r['mean_distance'] += self.util.distance(observation_)
                 r['win_rate'] += int(self.util.win(done, observation_) > 0)
-                '''
+
                 r['no_op_rate'] += int(self.util.is_no_op(action))
                 distance_moved = self.util.pad_move(observation_, last_pos)
 
                 moved = int(distance_moved > 0)
 
                 r['move_rate'] += moved
-                '''
+
 
                 frame_count += 1
 
@@ -221,12 +221,9 @@ class EvolutionServer:
 
         print(actions)
         r['avg_length'] = frame_count / float(n_games)
-        r['win_rate'] = r['win_rate'] / float(n_games) #(np.abs(r['game_reward'] - r['total_punition'])) / float(np.abs(r['game_reward'] - 2 * r['total_punition']))
-        if r['game_reward'] > 0:
-            # Helps ranking at the beginning
-            r['win_rate'] += 0.0001 * (np.abs(r['game_reward'] - r['total_punition'])) / float(np.abs(r['game_reward'] - 2 * r['total_punition']))
-        #  r['no_op_rate'] = r['no_op_rate'] / float(frame_count)
-        #  r['move_rate'] = r['move_rate'] / float(frame_count)
+        r['win_rate'] = (np.abs(r['game_reward'] - r['total_punition'])) / float(np.abs(r['game_reward'] - 2 * r['total_punition']))
+        r['no_op_rate'] = r['no_op_rate'] / float(frame_count)
+        r['move_rate'] = r['move_rate'] / float(frame_count)
         r['mean_distance'] = r['mean_distance'] / float(frame_count)
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist+1e-8) * dist)
@@ -243,28 +240,28 @@ class EvolutionServer:
         for frame_count in range(max_frame):
             action = player.pi.policy.get_action(observation)
             actions[action] += 1
-            #  observation_, reward, done, info = self.env.step(action)  # players pad only moves every two frames
-            #  last_pos = self.util.preprocess(observation_)[4]
+            observation_, reward, done, info = self.env.step(action)  # players pad only moves every two frames
+            last_pos = self.util.preprocess(observation_)[4]
             observation_, reward2, done, info = self.env.step(action)
-            #  reward += reward2
+            reward += reward2
             observation_ = self.util.preprocess(observation_)
-            #  distance_moved = self.util.pad_move(observation_, last_pos)
+            distance_moved = self.util.pad_move(observation_, last_pos)
 
-            #  moved = int(distance_moved > 0)
+            moved = int(distance_moved > 0)
             #  delta_score = self.util.score_delta(observation_)
             # win = delta_score - last_score_delta
             # last_score_delta = delta_score
-            #  act = (int(self.util.is_no_op(action)) - 1)
+            act = (int(self.util.is_no_op(action)) - 1)
             win = self.util.win(done, observation_)
             observation = np.concatenate([observation[len(observation) // 2:], observation_])
-            dmg, injury = self.util.compute_damage(observation)
+            #  dmg, injury = self.util.compute_damage(observation)
 
             self.trajectory['state'][0, frame_count] = observation
             self.trajectory['action'][0, frame_count] = action
 
             self.trajectory['rew'][0, frame_count] = 10* win * player.reward_weight[0] +\
-                                                     dmg * player.reward_weight[1] +\
-                                                     - injury * player.reward_weight[2]
+                                                     moved * player.reward_weight[1] +\
+                                                     act * player.reward_weight[2]
 
             self.trajectory['base_rew'][0, frame_count] = reward2
 

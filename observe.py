@@ -51,6 +51,7 @@ class PopulationObserver:
                 self.env.render()
                 action = self.player.pi.policy.get_action(observation, eval=True)
                 observation_, _, done, _ = self.env.step(action)
+                observation_, _, done, _ = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
                 observation = np.concatenate([observation[len(observation) // 2:], observation_])
                 sleep(self.slow_factor)
