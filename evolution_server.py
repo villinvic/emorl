@@ -208,7 +208,7 @@ class EvolutionServer:
                 # r['win_rate'] += int(self.util.win(done, observation_) > 0)
 
                 distance_moved = self.util.pad_move(observation_, last_pos)
-                last_pos = self.util.preprocess(observation_)[4]
+                last_pos = observation_[4]
 
                 moved = int(distance_moved > 0)
 
