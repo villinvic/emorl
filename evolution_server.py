@@ -25,8 +25,8 @@ import socket
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=128, batch_size=1, max_train=9,
-                 early_stop=7, round_length=200, min_eval=5000, min_games=1, subprocess=True, mutation_rate=0.5):
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=128, batch_size=1, max_train=10,
+                 early_stop=7, round_length=200, min_eval=10000, min_games=3, subprocess=True, mutation_rate=0.5):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -186,6 +186,7 @@ class EvolutionServer:
         n_games = 0
         actions = [0] * self.env.action_space.n
         dist = np.zeros((self.action_dim,), dtype=np.float32)
+        last_pos = 0
         while frame_count < min_frame or n_games <= self.min_games:
             done = False
             observation = self.util.preprocess(self.env.reset())
@@ -195,25 +196,24 @@ class EvolutionServer:
                 dist += dist_
                 actions[action] += 1
                 observation_, reward, done, info = self.env.step(action)  # players pad only moves every two frames
-                last_pos = self.util.preprocess(observation_)[4]
-                observation_, reward2, done, info = self.env.step(action)
+                # observation_, reward2, done, info = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
                 observation = np.concatenate([observation[len(observation)//2:], observation_])
-                reward += reward2
-                r['game_reward'] += reward2
-                if reward2 < 0:
-                    r['total_punition'] += reward2
+                # reward += reward2
+                r['game_reward'] += reward
+                if reward < 0:
+                    r['total_punition'] += reward
 
                 # r['mean_distance'] += self.util.distance(observation_)
                 # r['win_rate'] += int(self.util.win(done, observation_) > 0)
 
-                r['no_op_rate'] += int(self.util.is_no_op(action))
                 distance_moved = self.util.pad_move(observation_, last_pos)
+                last_pos = self.util.preprocess(observation_)[4]
 
                 moved = int(distance_moved > 0)
 
                 r['move_rate'] += moved
-
+                r['no_op_rate'] += int(self.util.is_no_op(action))
 
                 frame_count += 1
 
@@ -232,6 +232,7 @@ class EvolutionServer:
 
     def play(self, player: Individual, max_frame, observation=None):
         actions = [0]*self.action_dim
+        last_pos = 0
 
         if observation is None:
             observation = self.util.preprocess(self.env.reset())
@@ -241,11 +242,11 @@ class EvolutionServer:
             action = player.pi.policy.get_action(observation)
             actions[action] += 1
             observation_, reward, done, info = self.env.step(action)  # players pad only moves every two frames
-            last_pos = self.util.preprocess(observation_)[4]
-            observation_, reward2, done, info = self.env.step(action)
-            reward += reward2
+            # observation_, reward2, done, info = self.env.step(action)
+            # reward += reward2
             observation_ = self.util.preprocess(observation_)
             distance_moved = self.util.pad_move(observation_, last_pos)
+            last_pos = observation_[4]
 
             moved = int(distance_moved > 0)
             #  delta_score = self.util.score_delta(observation_)
@@ -263,7 +264,7 @@ class EvolutionServer:
                                                      moved * player.reward_weight[1] +\
                                                      act * player.reward_weight[2]
 
-            self.trajectory['base_rew'][0, frame_count] = reward2
+            self.trajectory['base_rew'][0, frame_count] = reward
 
             if done:
                 observation = self.util.preprocess(self.env.reset())
