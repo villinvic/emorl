@@ -92,7 +92,7 @@ class Boxing(dict):
 
 name2class = {'Pong-ramNoFrameskip-v4': Pong('Pong-ramNoFrameskip-v4'),
               'Pong-ram-v0': Pong('Pong-ram-v0'),
-              'Pong-ramDeterministic-v4': Pong('Pong-ramDeterministic-v4')
+              'Pong-ramDeterministic-v4': Pong('Pong-ramDeterministic-v4'),
               'Boxing-ramNoFrameskip-v4': Boxing('Boxing-ramNoFrameskip-v4'),
               'Boxing-ramDeterministic-v4': Boxing('Boxing-ramDeterministic-v4')}
 
