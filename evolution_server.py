@@ -260,7 +260,7 @@ class EvolutionServer:
             self.trajectory['state'][0, frame_count] = observation
             self.trajectory['action'][0, frame_count] = action
 
-            self.trajectory['rew'][0, frame_count] = 10* reward * player.reward_weight[0] +\
+            self.trajectory['rew'][0, frame_count] = np.clip(reward, 0, 1) * player.reward_weight[0] +\
                                                      moved * player.reward_weight[1] +\
                                                      act * player.reward_weight[2]
 
