@@ -196,6 +196,8 @@ class EvolutionServer:
                 dist += dist_
                 actions[action] += 1
                 observation_, reward, done, info = self.env.step(action)  # players pad only moves every two frames
+                observation_, reward2, done, info = self.env.step(action)
+                reward += reward2
                 # observation_, reward2, done, info = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
                 observation = np.concatenate([observation[len(observation)//2:], observation_])
@@ -242,6 +244,8 @@ class EvolutionServer:
             action = player.pi.policy.get_action(observation)
             actions[action] += 1
             observation_, reward, done, info = self.env.step(action)  # players pad only moves every two frames
+            observation_, reward2, done, info = self.env.step(action)
+            reward += reward2
             # observation_, reward2, done, info = self.env.step(action)
             # reward += reward2
             observation_ = self.util.preprocess(observation_)
@@ -260,7 +264,7 @@ class EvolutionServer:
             self.trajectory['state'][0, frame_count] = observation
             self.trajectory['action'][0, frame_count] = action
 
-            self.trajectory['rew'][0, frame_count] = np.clip(reward, 0, 1) * player.reward_weight[0] +\
+            self.trajectory['rew'][0, frame_count] = reward * player.reward_weight[0] +\
                                                      moved * player.reward_weight[1] +\
                                                      act * player.reward_weight[2]
 
