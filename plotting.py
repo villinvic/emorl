@@ -199,7 +199,7 @@ class PlotterV2:
             data[6][i] = self.pop.individuals[i].gen
         self.mean_ent_hist.append(ent/float(self.top))
         rects1 = bars.bar(x - width, data[0], width, label='Win rate', color='y')
-        rects2 = bars.bar(x,  data[1], width, label='Move rate', color='b')
+        rects2 = bars.bar(x,  data[1]*2, width, label='Move rate', color='b')
         rects1 = bars.bar(x + width, data[2], width, label='No act rate', color='r')
         rects1 = bars.bar(x - width, data[3], width/3.0, color='k')
         rects2 = bars.bar(x, data[4], width/3.0, color='k')

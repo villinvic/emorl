@@ -26,7 +26,7 @@ import socket
 class EvolutionServer:
 
     def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=128, batch_size=1, max_train=10,
-                 early_stop=7, round_length=200, min_eval=10000, min_games=3, subprocess=True, mutation_rate=0.5):
+                 early_stop=7, round_length=200, min_eval=10000, min_games=3, subprocess=True, mutation_rate=0.1):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -167,7 +167,7 @@ class EvolutionServer:
                         gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
                         q['pi'][i] += gaussian_noise
 
-                gaussian_noise = np.random.normal(loc=0, scale=0.3, size=q['r'].shape)
+                gaussian_noise = np.random.normal(loc=0, scale=1.0, size=q['r'].shape)
                 q['r'] = np.clip(q['r'] * (1 + gaussian_noise), 0, np.inf)
 
     def eval(self, player: Individual, min_frame):
@@ -196,8 +196,8 @@ class EvolutionServer:
                 dist += dist_
                 actions[action] += 1
                 observation_, reward, done, info = self.env.step(action)  # players pad only moves every two frames
-                observation_, reward2, done, info = self.env.step(action)
-                reward += reward2
+                # observation_, reward2, done, info = self.env.step(action)
+                # reward += reward2
                 # observation_, reward2, done, info = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
                 observation = np.concatenate([observation[len(observation)//2:], observation_])
@@ -244,8 +244,8 @@ class EvolutionServer:
             action = player.pi.policy.get_action(observation)
             actions[action] += 1
             observation_, reward, done, info = self.env.step(action)  # players pad only moves every two frames
-            observation_, reward2, done, info = self.env.step(action)
-            reward += reward2
+            # observation_, reward2, done, info = self.env.step(action)
+            # reward += reward2
             # observation_, reward2, done, info = self.env.step(action)
             # reward += reward2
             observation_ = self.util.preprocess(observation_)
