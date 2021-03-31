@@ -168,7 +168,7 @@ class EvolutionServer:
                         q['pi'][i] += gaussian_noise
 
                 gaussian_noise = np.random.normal(loc=0, scale=1.0, size=q['r'].shape)
-                q['r'] = np.clip(q['r'] * (1 + gaussian_noise), 0, np.inf)
+                q['r'] = np.clip(q['r'] * (1 + np.clip(gaussian_noise, -0.99, np.inf)), 0, np.inf)
 
     def eval(self, player: Individual, min_frame):
         r = {
