@@ -38,7 +38,7 @@ class EvolutionServer:
         self.state_shape = (self.util.state_dim*4,)
         self.action_dim = self.util.action_space_dim
         self.mutation_rate = mutation_rate
-        self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim, traj_length=traj_length)
+        self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim, traj_length=traj_length, batch_size=batch_size)
 
         if subprocess:
             context = zmq.Context()
