@@ -197,8 +197,8 @@ class EvolutionServer:
                 actions[action] += 1
                 reward = 0
                 for _ in range(4):
-                    observation_, r, done, info = self.env.step(self.util.action_to_id(action))  # players pad only moves every two frames
-                    reward += r
+                    observation_, rr, done, info = self.env.step(self.util.action_to_id(action))  # players pad only moves every two frames
+                    reward += rr
                 
                 # observation_, reward2, done, info = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
@@ -248,8 +248,8 @@ class EvolutionServer:
                 actions[action] += 1
                 reward = 0
                 for _ in range(4):
-                    observation_, r, done, info = self.env.step(self.util.action_to_id(action))  # players pad only moves every two frames
-                    reward += r
+                    observation_, rr, done, info = self.env.step(self.util.action_to_id(action))  # players pad only moves every two frames
+                    reward += rr
                 observation_ = self.util.preprocess(observation_)
                 distance_moved = self.util.pad_move(observation_, last_pos)
                 last_pos = observation_[4]
