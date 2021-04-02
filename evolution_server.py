@@ -25,7 +25,7 @@ import socket
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=128, batch_size=8, max_train=400,
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=10, batch_size=8, max_train=3000,
                  early_stop=7, round_length=200, min_eval=1, min_games=1, subprocess=True, mutation_rate=1.0):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
@@ -167,8 +167,8 @@ class EvolutionServer:
                         gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
                         q['pi'][i] += gaussian_noise
 
-                gaussian_noise = np.random.normal(loc=0, scale=0.02, size=q['r'].shape)
-                q['r'] = np.clip(q['r'] + gaussian_noise, 0, np.inf)
+                gaussian_noise = np.random.normal(loc=0, scale=0.3, size=q['r'].shape)
+                q['r'] = np.clip(q['r'] * (1 + gaussian_noise), 1e-4, np.inf)
 
     def eval(self, player: Individual, min_frame):
         r = {
@@ -195,10 +195,11 @@ class EvolutionServer:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
                 dist += dist_
                 actions[action] += 1
-                observation_, reward, done, info = self.env.step(self.util.action_to_id(action))  # players pad only moves every two frames
+                reward = 0
+                for _ in range(4):
+                    observation_, r, done, info = self.env.step(self.util.action_to_id(action))  # players pad only moves every two frames
+                    reward += r
                 
-                observation_, reward2, done, info = self.env.step(self.util.action_to_id(action))
-                reward += reward2
                 # observation_, reward2, done, info = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
                 observation = np.concatenate([observation[len(observation) //4:], observation_])
@@ -245,9 +246,10 @@ class EvolutionServer:
             for frame_count in range(self.traj_length):
                 action = player.pi.policy.get_action(observation)
                 actions[action] += 1
-                observation_, reward, done, info = self.env.step(self.util.action_to_id(action))  # players pad only moves every two frames
-                observation_, reward2, done, info = self.env.step(self.util.action_to_id(action))
-                reward += reward2
+                reward = 0
+                for _ in range(4):
+                    observation_, r, done, info = self.env.step(self.util.action_to_id(action))  # players pad only moves every two frames
+                    reward += r
                 observation_ = self.util.preprocess(observation_)
                 distance_moved = self.util.pad_move(observation_, last_pos)
                 last_pos = observation_[4]
