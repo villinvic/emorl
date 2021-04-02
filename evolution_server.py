@@ -25,8 +25,8 @@ import socket
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=128, batch_size=1, max_train=10,
-                 early_stop=7, round_length=200, min_eval=10000, min_games=3, subprocess=True, mutation_rate=0.5):
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=128, batch_size=1, max_train=600,
+                 early_stop=7, round_length=200, min_eval=500, min_games=8, subprocess=True, mutation_rate=0.5):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -35,8 +35,8 @@ class EvolutionServer:
         self.ID = ID
         self.env = gym.make(env_id)
         self.util = name2class[env_id]
-        self.state_shape = (self.util.state_dim*2,)
-        self.action_dim = self.env.action_space.n
+        self.state_shape = (self.util.state_dim*4,)
+        self.action_dim = self.util.action_space_dim
         self.mutation_rate = mutation_rate
         self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim, traj_length=traj_length)
 
@@ -146,7 +146,7 @@ class EvolutionServer:
             distance = np.fabs(p1['r'] - p2['r'])
             x = 0.5 * (p1['r'] + p2['r'])
             for j in range(len(p1['r'])):
-                beta1, beta2 = self.SBX_beta(5, p1['r'][j], p2['r'][j], distance[j])
+                beta1, beta2 = self.SBX_beta(20, p1['r'][j], p2['r'][j], distance[j])
                 if np.random.random() < 0.5:
                     q1['r'] = np.clip(x - 0.5 * beta1 * distance, 0, np.inf)
                 else:
@@ -167,7 +167,7 @@ class EvolutionServer:
                         gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
                         q['pi'][i] += gaussian_noise
 
-                gaussian_noise = np.random.normal(loc=0, scale=0.3, size=q['r'].shape)
+                gaussian_noise = np.random.normal(loc=0, scale=0.2, size=q['r'].shape)
                 q['r'] = np.clip(q['r'] * (1+gaussian_noise), 0, np.inf)
 
     def eval(self, player: Individual, min_frame):
@@ -190,17 +190,17 @@ class EvolutionServer:
         while frame_count < min_frame or n_games <= self.min_games:
             done = False
             observation = self.util.preprocess(self.env.reset())
-            observation = np.concatenate([observation, observation])
+            observation = np.concatenate([observation, observation, observation, observation])
             while not done:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
                 dist += dist_
                 actions[action] += 1
-                observation_, reward, done, info = self.env.step(action)  # players pad only moves every two frames
+                observation_, reward, done, info = self.env.step(self.util.action_to_id(action))  # players pad only moves every two frames
                 # observation_, reward2, done, info = self.env.step(action)
                 # reward += reward2
                 # observation_, reward2, done, info = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
-                observation = np.concatenate([observation[len(observation)//2:], observation_])
+                observation = np.concatenate([observation[len(observation) //4:], observation_])
                 # reward += reward2
                 r['game_reward'] += reward
                 if reward < 0:
@@ -223,7 +223,7 @@ class EvolutionServer:
 
         print(actions)
         r['avg_length'] = frame_count / float(n_games)
-        r['win_rate'] = (np.abs(r['game_reward'] - r['total_punition'])) / float(np.abs(r['game_reward'] - 2 * r['total_punition']))
+        r['win_rate'] = r['game_reward'] / float(n_games) #(np.abs(r['game_reward'] - r['total_punition'])) / float(np.abs(r['game_reward'] - 2 * r['total_punition']))
         r['no_op_rate'] = r['no_op_rate'] / float(frame_count)
         r['move_rate'] = r['move_rate'] / float(frame_count)
         # r['mean_distance'] = r['mean_distance'] / float(frame_count)
@@ -238,12 +238,12 @@ class EvolutionServer:
 
         if observation is None:
             observation = self.util.preprocess(self.env.reset())
-            observation = np.concatenate([observation, observation])
+            observation = np.concatenate([observation, observation, observation, observation])
 
         for frame_count in range(max_frame):
             action = player.pi.policy.get_action(observation)
             actions[action] += 1
-            observation_, reward, done, info = self.env.step(action)  # players pad only moves every two frames
+            observation_, reward, done, info = self.env.step(self.util.action_to_id(action))  # players pad only moves every two frames
             # observation_, reward2, done, info = self.env.step(action)
             # reward += reward2
             # observation_, reward2, done, info = self.env.step(action)
@@ -258,13 +258,13 @@ class EvolutionServer:
             # last_score_delta = delta_score
             act = (int(self.util.is_no_op(action)) - 1)
             # win = self.util.win(done, observation_)
-            observation = np.concatenate([observation[len(observation) // 2:], observation_])
+            observation = np.concatenate([observation[len(observation) // 4:], observation_])
             #  dmg, injury = self.util.compute_damage(observation)
 
             self.trajectory['state'][0, frame_count] = observation
             self.trajectory['action'][0, frame_count] = action
 
-            self.trajectory['rew'][0, frame_count] = reward * player.reward_weight[0] +\
+            self.trajectory['rew'][0, frame_count] = np.clip(reward, 0, 1) * player.reward_weight[0] +\
                                                      moved * player.reward_weight[1] +\
                                                      act * player.reward_weight[2]
 
@@ -272,7 +272,7 @@ class EvolutionServer:
 
             if done:
                 observation = self.util.preprocess(self.env.reset())
-                observation = np.concatenate([observation, observation])
+                observation = np.concatenate([observation, observation, observation, observation])
 
         return observation
 
@@ -290,7 +290,7 @@ class EvolutionServer:
             training_step = 0
             no_improvement_counter = 0
             # self.player.pi.reset_optim()
-            while time() - start_time < self.max_train * 60:
+            while training_step < self.max_train:#time() - start_time < self.max_train * 60:
                 obs = self.play(self.player, self.traj_length, obs)
                 self.player.pi.train(self.trajectory['state'], self.trajectory['action'][:, :-1], self.trajectory['rew'][:, :-1], -1)
                 training_step += 1

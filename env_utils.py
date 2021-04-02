@@ -17,6 +17,8 @@ class Pong(dict):
         self.centers = np.array([0, 0, 127, 127, 127, 127], dtype=np.float32)
         self.scales = np.array([0.05, 0.05, 0.01, 0.01, 0.01, 0.01], dtype=np.float32)
         self.state_dim = len(self.indexes)
+        
+        self.action_space_dim = 3
 
         self['objectives'] = ['win_rate', 'move_rate', 'no_op_rate']
 
@@ -37,7 +39,15 @@ class Pong(dict):
         return np.abs(np.float32(obs[4]) - last_pos)
 
     def is_no_op(self, action_id):
-        return action_id in [0, 1]  # no act means no op or no move ?
+        return action_id == 0
+        
+    def action_to_id(self, action_id):
+        if action_id == 0:
+            return 0
+        elif action_id == 1:
+            return 2
+        else:
+            return 3   
 
 class Boxing(dict):
     def __init__(self, name, player_x=32,

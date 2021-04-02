@@ -184,26 +184,23 @@ class PlotterV2:
     def plot(self):
         x = np.arange(10)
         width = 0.2
-        fig, ((bars, opti), (entropy, _)) = plt.subplots(2, 2, figsize=(10, 10))
+        fig, ((bars, opti), (entropy, reward_weights)) = plt.subplots(2, 2, figsize=(10, 10))
         fig.tight_layout()
         data = np.empty((6 + 1, self.top), dtype=np.float32)
         ent = 0
         for i in range(self.top):
-            data[0][i] = self.pop.individuals[i].behavior_stats['win_rate']
+            data[0][i] = (self.pop.individuals[i].behavior_stats['win_rate'] + 21) / 42.0
             data[1][i] = self.pop.individuals[i].behavior_stats['move_rate']
             data[2][i] = self.pop.individuals[i].behavior_stats['no_op_rate']
-            data[3][i] = self.pop.individuals[i].reward_weight[0] * 0.1
-            data[4][i] = self.pop.individuals[i].reward_weight[1] * 0.1
-            data[5][i] = self.pop.individuals[i].reward_weight[2] * 0.1
+            data[3][i] = self.pop.individuals[i].reward_weight[0]
+            data[4][i] = self.pop.individuals[i].reward_weight[1]
+            data[5][i] = self.pop.individuals[i].reward_weight[2]
             ent += self.pop.individuals[i].behavior_stats['entropy']
             data[6][i] = self.pop.individuals[i].gen
         self.mean_ent_hist.append(ent/float(self.top))
-        rects1 = bars.bar(x - width, data[0], width, label='Win rate', color='y')
-        rects2 = bars.bar(x,  data[1]*2, width, label='Move rate', color='b')
-        rects1 = bars.bar(x + width, data[2], width, label='No act rate', color='r')
-        rects1 = bars.bar(x - width, data[3], width/3.0, color='k')
-        rects2 = bars.bar(x, data[4], width/3.0, color='k')
-        rects1 = bars.bar(x + width, data[5], width/3.0, color='k')
+        bars.bar(x - width, data[0], width, label='Win rate', color='y')
+        bars.bar(x,  data[1], width, label='Move rate', color='b')
+        bars.bar(x + width, data[2], width, label='No act rate', color='r')
 
         bars.set_ylabel('Scores')
         bars.set_xlabel('Individual Generations')
@@ -230,12 +227,23 @@ class PlotterV2:
         entropy.plot(ticks, self.mean_ent_hist)
         entropy.set_ylabel('Entropy')
         entropy.set_xlabel('Iteration')
-        entropy.set_xticks(ticks)
         entropy.set_title('Top 10 mean entropy over iterations')
+        
+        reward_weights.bar(x - width, data[3], width, label='win', color='y')
+        reward_weights.bar(x, data[4], width, label='pad_move', color='b')
+        reward_weights.bar(x + width, data[5], width, label='no_act', color='r')
+        reward_weights.set_ylabel('Reward weight')
+        reward_weights.set_xlabel('Individual rank')
+        reward_weights.set_title('Individual reward weights')
+        reward_weights.set_xticks(x)
+        reward_weights.set_xticklabels(x+1)
+        reward_weights.set_yscale('log')
+        reward_weights.legend()
+        
 
         fig.subplots_adjust(bottom=0.05, left=0.1, top=0.96, hspace=0.2, wspace=0.2)
 
-        fig.savefig(self.path+'iteration_%d.png' % self.gen)
+        fig.savefig(self.path+'iteration_%d.png' % (self.gen-1))
         plt.close(fig)
 
 '''

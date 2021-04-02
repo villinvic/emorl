@@ -48,8 +48,8 @@ class Collector:
             dummy = gym.make(self.util.name)
 
 
-            self.state_shape = (self.util.state_dim*2,)
-            self.action_dim = dummy.action_space.n
+            self.state_shape = (self.util.state_dim*4,)
+            self.action_dim = self.util.action_space_dim
             self.goal_dim = self.util.goal_dim
             self.n_send = n_send
             self.epsilon = epsilon
@@ -174,7 +174,7 @@ class Collector:
         try:
             if not self.client_mode:
                 ckpt_name = '--'.join([str(self.population.size), str(self.generation-1),
-                                       str(datetime.now()).strip(' ')])
+                                       str(datetime.now()).replace(' ', '')])
                 self.serializer.dump(self.population, ckpt_name)
         except Exception as e:
             print('serializer failed :', e)
