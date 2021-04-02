@@ -15,7 +15,7 @@ from behavior import *
 
 class Individual:
 
-    def __init__(self, state_shape, action_dim, goal_dim, epsilon=0.01, lr=0.001, gamma=0.993, entropy_scale=0.01,
+    def __init__(self, state_shape, action_dim, goal_dim, epsilon=0.01, lr=0.001, gamma=0.99, entropy_scale=0.01,
                  gae_lambda=1.0, traj_length=10, batch_size=1, neg_scale=1.0, generation=1):
         self.pi = AC(state_shape, action_dim, epsilon, lr, gamma, entropy_scale, gae_lambda,
                      traj_length, batch_size, neg_scale)
@@ -41,8 +41,8 @@ class Individual:
 class LightIndividual:
     def __init__(self, goal_dim, generation=1):
 
-        self.reward_weight = log_uniform(0, 10, (goal_dim,), base=2) / 2.0**16
-        self.reward_weight[0] *= 280
+        self.reward_weight = log_uniform(0, 10, (goal_dim,), base=2) / 2.0**12
+        self.reward_weight[0] *= 40
         self.behavior_stats = {}
         self.gen = generation
         self.model_weights = None
