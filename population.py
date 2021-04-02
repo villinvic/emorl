@@ -41,7 +41,7 @@ class Individual:
 class LightIndividual:
     def __init__(self, goal_dim, generation=1):
 
-        self.reward_weight = log_uniform(0, 10, (goal_dim,), base=2) / 2.0**12
+        self.reward_weight = log_uniform(0, 10, (goal_dim,), base=2) / 2.0**13
         self.reward_weight[0] *= 40
         self.behavior_stats = {}
         self.gen = generation
