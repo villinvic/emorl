@@ -261,7 +261,6 @@ class EvolutionServer:
                 # last_score_delta = delta_score
                 act = (int(self.util.is_no_op(action)) - 1)
                 # win = self.util.win(done, observation_)
-                observation = np.concatenate([observation[len(observation) // 4:], observation_])
                 #  dmg, injury = self.util.compute_damage(observation)
 
                 self.trajectory['state'][batch_index, frame_count] = observation
@@ -277,6 +276,8 @@ class EvolutionServer:
                     observation = self.util.preprocess(self.env.reset())
                     observation = np.concatenate([observation, observation, observation, observation])
                     last_pos = observation[self.util.state_dim*3 + 4]
+                else:
+                    observation = np.concatenate([observation[len(observation) // 4:], observation_])
 
         return observation
 
