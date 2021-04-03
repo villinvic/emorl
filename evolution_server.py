@@ -35,8 +35,8 @@ class EvolutionServer:
         self.ID = ID
         self.env = gym.make(env_id)
         self.util = name2class[env_id]
-        self.state_shape = (self.util.state_dim*4,)
         self.action_dim = self.util.action_space_dim
+        self.state_shape = ((self.util.state_dim+self.action_dim)*4 + ,)
         self.mutation_rate = mutation_rate
         self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim, traj_length=traj_length, batch_size=batch_size)
 

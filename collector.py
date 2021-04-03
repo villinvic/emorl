@@ -47,9 +47,9 @@ class Collector:
             self.util = name2class[env_id]
             dummy = gym.make(self.util.name)
 
-
-            self.state_shape = (self.util.state_dim*4,)
             self.action_dim = self.util.action_space_dim
+            self.state_shape = ((self.util.state_dim+self.action_dim)*4 + ,)
+            
             self.goal_dim = self.util.goal_dim
             self.n_send = n_send
             self.epsilon = epsilon
