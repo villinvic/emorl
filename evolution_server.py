@@ -240,13 +240,14 @@ class EvolutionServer:
 
     def play(self, player: Individual, observation=None):
         actions = [0]*self.action_dim
-        last_pos = 0
 
         if observation is None:
             observation = self.util.preprocess(self.env.reset())
             action_onehot = [0,0,0]
             action_onehot[0] = 1
             observation = np.concatenate([observation, action_onehot, observation, action_onehot, observation, action_onehot, observation, action_onehot])
+            
+        last_pos = observation[(self.util.state_dim+self.action_dim)*3 + 4]
 
         for batch_index in range(self.batch_size):
             for frame_count in range(self.traj_length):
@@ -282,7 +283,10 @@ class EvolutionServer:
 
                 if done:
                     observation = self.util.preprocess(self.env.reset())
-                    observation = np.concatenate([observation, observation, observation, observation])
+                    action_onehot = [0,0,0]
+                    action_onehot[0] = 1
+                    observation = np.concatenate([observation, action_onehot, observation, action_onehot, observation, action_onehot, observation, action_onehot])
+                    last_pos = observation[(self.util.state_dim+self.action_dim)*3 + 4]
 
         return observation
 
