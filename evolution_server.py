@@ -186,13 +186,13 @@ class EvolutionServer:
         n_games = 0
         actions = [0] * self.env.action_space.n
         dist = np.zeros((self.action_dim,), dtype=np.float32)
-        last_pos = 0
         while frame_count < min_frame or n_games <= self.min_games:
             done = False
             observation = self.util.preprocess(self.env.reset())
             action_onehot = [0,0,0]
             action_onehot[0] = 1
             observation = np.concatenate([observation, action_onehot, observation, action_onehot, observation, action_onehot, observation, action_onehot])
+            last_pos = observation[(self.util.state_dim+self.action_dim)*3 + 4]
             while not done:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
                 dist += dist_
@@ -218,7 +218,7 @@ class EvolutionServer:
                 distance_moved = self.util.pad_move(observation_, last_pos)
                 last_pos = observation_[4]
 
-                moved = int(distance_moved > 0)
+                moved = int(distance_moved > 1e-5)
 
                 r['move_rate'] += moved
                 r['no_op_rate'] += int(self.util.is_no_op(action))
@@ -261,7 +261,7 @@ class EvolutionServer:
                 distance_moved = self.util.pad_move(observation_, last_pos)
                 last_pos = observation_[4]
 
-                moved = int(distance_moved > 0)
+                moved = int(distance_moved > 1e-5)
                 #  delta_score = self.util.score_delta(observation_)
                 # win = delta_score - last_score_delta
                 # last_score_delta = delta_score
