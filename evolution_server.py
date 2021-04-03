@@ -25,7 +25,7 @@ import socket
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=32, batch_size=4, max_train=3000,
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=32, batch_size=4, max_train=2000,
                  early_stop=10, round_length=300, min_eval=1, min_games=1, subprocess=True, mutation_rate=0.1):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
@@ -167,7 +167,7 @@ class EvolutionServer:
                         gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
                         q['pi'][i] += gaussian_noise
 
-                gaussian_noise = np.abs(np.random.normal(loc=0, scale=1, size=q['r'].shape))
+                gaussian_noise = np.abs(np.random.normal(loc=0, scale=2, size=q['r'].shape))
                 q['r'] = np.clip(q['r'] * gaussian_noise, 1e-4, np.inf)
 
     def eval(self, player: Individual, min_frame):
@@ -275,7 +275,7 @@ class EvolutionServer:
                 self.trajectory['state'][batch_index, frame_count] = observation
                 self.trajectory['action'][batch_index, frame_count] = action
 
-                self.trajectory['rew'][batch_index, frame_count] = np.clip(reward, 0, 1) * player.reward_weight[0] +\
+                self.trajectory['rew'][batch_index, frame_count] = np.clip(reward, -1, 1) * player.reward_weight[0] +\
                                                          moved * player.reward_weight[1] +\
                                                          act * player.reward_weight[2]
 
