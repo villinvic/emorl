@@ -25,8 +25,8 @@ import socket
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=5, batch_size=8, max_train=6000,
-                 early_stop=10, round_length=300, min_eval=1, min_games=1, subprocess=True, mutation_rate=1.0):
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=32, batch_size=4, max_train=3000,
+                 early_stop=10, round_length=300, min_eval=1, min_games=1, subprocess=True, mutation_rate=0.1):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -167,8 +167,8 @@ class EvolutionServer:
                         gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
                         q['pi'][i] += gaussian_noise
 
-                gaussian_noise = np.random.normal(loc=0, scale=0.3, size=q['r'].shape)
-                q['r'] = np.clip(q['r'] * (1 + gaussian_noise), 1e-4, np.inf)
+                gaussian_noise = np.abs(np.random.normal(loc=0, scale=1, size=q['r'].shape))
+                q['r'] = np.clip(q['r'] * gaussian_noise, 1e-4, np.inf)
 
     def eval(self, player: Individual, min_frame):
         r = {
@@ -190,7 +190,9 @@ class EvolutionServer:
         while frame_count < min_frame or n_games <= self.min_games:
             done = False
             observation = self.util.preprocess(self.env.reset())
-            observation = np.concatenate([observation, observation, observation, observation])
+            action_onehot = [0,0,0]
+            action_onehot[0] = 1
+            observation = np.concatenate([observation, action_onehot, observation, action_onehot, observation, action_onehot, observation, action_onehot])
             while not done:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
                 dist += dist_
@@ -202,7 +204,9 @@ class EvolutionServer:
                 
                 # observation_, reward2, done, info = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
-                observation = np.concatenate([observation[len(observation) //4:], observation_])
+                action_onehot = [0,0,0]
+                action_onehot[action] = 1
+                observation = np.concatenate([observation[len(observation) //4:], observation_, action_onehot])
                 # reward += reward2
                 r['game_reward'] += reward
                 if reward < 0:
@@ -240,7 +244,9 @@ class EvolutionServer:
 
         if observation is None:
             observation = self.util.preprocess(self.env.reset())
-            observation = np.concatenate([observation, observation, observation, observation])
+            action_onehot = [0,0,0]
+            action_onehot[0] = 1
+            observation = np.concatenate([observation, action_onehot, observation, action_onehot, observation, action_onehot, observation, action_onehot])
 
         for batch_index in range(self.batch_size):
             for frame_count in range(self.traj_length):
@@ -260,7 +266,9 @@ class EvolutionServer:
                 # last_score_delta = delta_score
                 act = (int(self.util.is_no_op(action)) - 1)
                 # win = self.util.win(done, observation_)
-                observation = np.concatenate([observation[len(observation) // 4:], observation_])
+                action_onehot = [0,0,0]
+                action_onehot[action] = 1
+                observation = np.concatenate([observation[len(observation) // 4:], observation_, action_onehot])
                 #  dmg, injury = self.util.compute_damage(observation)
 
                 self.trajectory['state'][batch_index, frame_count] = observation
