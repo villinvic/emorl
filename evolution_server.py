@@ -25,8 +25,8 @@ import socket
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=32, batch_size=4, max_train=2000,
-                 early_stop=10, round_length=300, min_eval=1, min_games=1, subprocess=True, mutation_rate=0.1):
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=10, batch_size=16, max_train=4000,
+                 early_stop=100, round_length=300, min_eval=1, min_games=1, subprocess=True, mutation_rate=0.1):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -36,7 +36,7 @@ class EvolutionServer:
         self.env = gym.make(env_id)
         self.util = name2class[env_id]
         self.action_dim = self.util.action_space_dim
-        self.state_shape = ((self.util.state_dim+self.action_dim)*4,)
+        self.state_shape = (self.util.state_dim*4,)
         self.mutation_rate = mutation_rate
         self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim, traj_length=traj_length, batch_size=batch_size)
 
@@ -189,10 +189,8 @@ class EvolutionServer:
         while frame_count < min_frame or n_games <= self.min_games:
             done = False
             observation = self.util.preprocess(self.env.reset())
-            action_onehot = [0,0,0]
-            action_onehot[0] = 1
-            observation = np.concatenate([observation, action_onehot, observation, action_onehot, observation, action_onehot, observation, action_onehot])
-            last_pos = observation[(self.util.state_dim+self.action_dim)*3 + 4]
+            observation = np.concatenate([observation, observation, observation, observation])
+            last_pos = observation[self.util.state_dim*3 + 4]
             while not done:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
                 dist += dist_
@@ -204,9 +202,7 @@ class EvolutionServer:
                 
                 # observation_, reward2, done, info = self.env.step(action)
                 observation_ = self.util.preprocess(observation_)
-                action_onehot = [0,0,0]
-                action_onehot[action] = 1
-                observation = np.concatenate([observation[len(observation) //4:], observation_, action_onehot])
+                observation = np.concatenate([observation[len(observation) //4:], observation_])
                 # reward += reward2
                 r['game_reward'] += reward
                 if reward < 0:
@@ -243,11 +239,9 @@ class EvolutionServer:
 
         if observation is None:
             observation = self.util.preprocess(self.env.reset())
-            action_onehot = [0,0,0]
-            action_onehot[0] = 1
-            observation = np.concatenate([observation, action_onehot, observation, action_onehot, observation, action_onehot, observation, action_onehot])
+            observation = np.concatenate([observation, observation, observation, observation])
             
-        last_pos = observation[(self.util.state_dim+self.action_dim)*3 + 4]
+        last_pos = observation[self.util.state_dim*3 + 4]
 
         for batch_index in range(self.batch_size):
             for frame_count in range(self.traj_length):
@@ -267,9 +261,7 @@ class EvolutionServer:
                 # last_score_delta = delta_score
                 act = (int(self.util.is_no_op(action)) - 1)
                 # win = self.util.win(done, observation_)
-                action_onehot = [0,0,0]
-                action_onehot[action] = 1
-                observation = np.concatenate([observation[len(observation) // 4:], observation_, action_onehot])
+                observation = np.concatenate([observation[len(observation) // 4:], observation_])
                 #  dmg, injury = self.util.compute_damage(observation)
 
                 self.trajectory['state'][batch_index, frame_count] = observation
@@ -283,10 +275,8 @@ class EvolutionServer:
 
                 if done:
                     observation = self.util.preprocess(self.env.reset())
-                    action_onehot = [0,0,0]
-                    action_onehot[0] = 1
-                    observation = np.concatenate([observation, action_onehot, observation, action_onehot, observation, action_onehot, observation, action_onehot])
-                    last_pos = observation[(self.util.state_dim+self.action_dim)*3 + 4]
+                    observation = np.concatenate([observation, observation, observation, observation])
+                    last_pos = observation[self.util.state_dim*3 + 4]
 
         return observation
 
