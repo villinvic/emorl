@@ -26,7 +26,7 @@ import socket
 class EvolutionServer:
 
     def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=10, batch_size=16, max_train=3000,
-                 early_stop=100, round_length=300, min_eval=1, min_games=1, subprocess=True, mutation_rate=0.1):
+                 early_stop=100, round_length=300, min_eval=1, min_games=1, subprocess=True, mutation_rate=0.3):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -167,7 +167,7 @@ class EvolutionServer:
                         gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
                         q['pi'][i] += gaussian_noise
 
-                gaussian_noise = np.abs(np.random.normal(loc=0, scale=1.2, size=q['r'].shape))
+                gaussian_noise = np.abs(np.random.normal(loc=0, scale=1.25, size=q['r'].shape))
                 q['r'] = np.clip(q['r'] * gaussian_noise, 1e-4, np.inf)
 
     def eval(self, player: Individual, min_frame):
@@ -186,7 +186,7 @@ class EvolutionServer:
         n_games = 0
         actions = [0] * self.env.action_space.n
         dist = np.zeros((self.action_dim,), dtype=np.float32)
-        while frame_count < min_frame or n_games <= self.min_games:
+        while frame_count < min_frame or n_games < self.min_games:
             done = False
             observation = self.util.preprocess(self.env.reset())
             observation = np.concatenate([observation, observation, observation, observation])
