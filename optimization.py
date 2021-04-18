@@ -95,6 +95,10 @@ def cd_select(scores, indexes, size):
     distances = [np.inf] * len(indexes)
     distances_2 = [np.inf] * len(indexes)
     comparing_score = deepcopy(scores[:, :, -1])
+    print(comparing_score)
+    for i in range(len(comparing_score)):
+        comparing_score[i] /= np.max(np.abs(comparing_score[i]))
+    print(comparing_score)
 
     for i, index in enumerate(indexes):
         for index2 in indexes[:index:]:
