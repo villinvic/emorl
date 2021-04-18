@@ -25,7 +25,7 @@ import socket
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=10, batch_size=16, max_train=2000,
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=10, batch_size=16, max_train=1500,
                  early_stop=100, round_length=300, min_eval=1, min_games=20, subprocess=True, mutation_rate=0.5):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
@@ -207,7 +207,7 @@ class EvolutionServer:
                     r['total_punition'] += reward
 
                 r['mean_distance'] += self.util.distance(observation_)
-                r['win_rate'] += int(self.util.win(done, observation_) > 0)
+                r['win_rate'] += int(self.util.win(done, observation_) > 70)
 
                 # distance_moved = self.util.pad_move(observation_, last_pos)
                 # last_pos = observation_[4]
@@ -258,13 +258,13 @@ class EvolutionServer:
                 # win = delta_score - last_score_delta
                 # last_score_delta = delta_score
                 # act = (int(self.util.is_no_op(action)) - 1)
-                win = self.util.win(done, observation_)
+                win = int(self.util.win(done, observation_) > 0)
                 dmg, injury = self.util.compute_damage(observation)
 
                 self.trajectory['state'][batch_index, frame_count] = observation
                 self.trajectory['action'][batch_index, frame_count] = action
 
-                self.trajectory['rew'][batch_index, frame_count] = win * player.reward_weight[0] +\
+                self.trajectory['rew'][batch_index, frame_count] = 100 * win * player.reward_weight[0] +\
                                                          dmg * player.reward_weight[1] +\
                                                          -injury * player.reward_weight[2]
 

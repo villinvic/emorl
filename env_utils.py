@@ -89,13 +89,9 @@ class Boxing(dict):
     def distance(self, obs):
         return np.sqrt(np.square(obs[0] - obs[2]) + np.square(obs[1] - obs[3]))
 
-    def win(self, done, obs):
+    def win(self, done, obs, eval=False):
         if done:
-            d = obs[4]/self.scales[4] - obs[5]/self.scales[5]
-            if d > 30:
-                return 1
-            elif d < 0:
-                return -1
+            return obs[4]/self.scales[4] - obs[5]/self.scales[5]
                 
         return 0
 
