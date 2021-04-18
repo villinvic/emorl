@@ -26,7 +26,7 @@ import socket
 class EvolutionServer:
 
     def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=10, batch_size=16, max_train=1500,
-                 early_stop=100, round_length=300, min_eval=1, min_games=20, subprocess=True, mutation_rate=0.5):
+                 early_stop=100, round_length=300, min_eval=1, min_games=30, subprocess=True, mutation_rate=0.5):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -39,6 +39,7 @@ class EvolutionServer:
         self.state_shape = (self.util.state_dim*4,)
         self.mutation_rate = mutation_rate
         self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim, traj_length=traj_length, batch_size=batch_size)
+        self.frame_skip = 4
 
         if subprocess:
             context = zmq.Context()
@@ -196,7 +197,7 @@ class EvolutionServer:
                 dist += dist_
                 actions[action] += 1
                 reward = 0
-                for _ in range(4):
+                for _ in range(self.frame_skip):
                     observation_, rr, done, info = self.env.step(self.util.action_to_id(action))  # players pad only moves every two frames
                     reward += rr
 
@@ -207,7 +208,7 @@ class EvolutionServer:
                     r['total_punition'] += reward
 
                 r['mean_distance'] += self.util.distance(observation_)
-                r['win_rate'] += int(self.util.win(done, observation_) > 70)
+                r['win_rate'] += int(self.util.win(done, observation_) > 30)
 
                 # distance_moved = self.util.pad_move(observation_, last_pos)
                 # last_pos = observation_[4]
@@ -246,7 +247,7 @@ class EvolutionServer:
                 action = player.pi.policy.get_action(observation)
                 actions[action] += 1
                 reward = 0
-                for _ in range(4):
+                for _ in range(self.frame_skip):
                     observation_, rr, done, info = self.env.step(self.util.action_to_id(action))  # players pad only moves every two frames
                     reward += rr
                 observation_ = self.util.preprocess(observation_)

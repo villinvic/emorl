@@ -31,8 +31,10 @@ def is_dominated(x_scores, y_scores, epsilon):
             eps = epsilon
 
         if x_scores[i] > y_scores[i] + eps:
+            print(x_scores, y_scores, True)
             return True
         elif x_scores[i] < y_scores[i]:
+            print(x_scores, y_scores, False)
             return False
 
     return False
@@ -42,9 +44,15 @@ def argsort_with_order(seq):
     '''
     supposing there is only one sub objective
     '''
+    seqq = np.concatenate([seq[0,:,0][:, np.newaxis]] + [seqq[:, np.newaxis] for seqq in seq[:,:,1]], axis=1)
 
-    with_fields = np.core.records.fromarrays(seq.transpose(), names='x, y', formats='f8, f8')
-    return list(np.argsort(with_fields, order=('x', 'y')))
+    names_l = [str(i) for i in range(1+len(seq))]
+    f = ', '.join(['f8' for _ in range(1+len(seq))])
+    names = ', '.join(names_l)
+
+
+    with_fields = np.core.records.fromarrays(seqq.transpose(), names=names, formats=f)
+    return list(np.argsort(with_fields, order=tuple(names_l)))
 
 
 def nd_sort(scores, n_objectives, epsilon):
@@ -53,7 +61,8 @@ def nd_sort(scores, n_objectives, epsilon):
     """
     frontiers = [[]]
     assert n_objectives > 1
-    indexes = np.array(list(reversed(argsort_with_order(scores[0, :, :]))))
+    indexes = np.array(list(reversed(argsort_with_order(scores))))
+    print(indexes)
 
     for index in indexes:
         x = len(frontiers)
@@ -62,7 +71,7 @@ def nd_sort(scores, n_objectives, epsilon):
             dominated = False
             for solution in frontiers[k]:
                 tmp = True
-                for objective_num in range(0, n_objectives):
+                for objective_num in range(1, n_objectives):
                     if is_dominated(scores[objective_num][index], scores[objective_num][solution], epsilon):
                         tmp = False
                         break
