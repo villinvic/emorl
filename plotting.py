@@ -230,8 +230,8 @@ class PlotterV2:
         entropy.set_title('Top 10 mean entropy over iterations')
         
         reward_weights.bar(x - width, data[3], width, label='win', color='y')
-        reward_weights.bar(x, data[4], width, label='pad_move', color='b')
-        reward_weights.bar(x + width, data[5], width, label='no_act', color='r')
+        reward_weights.bar(x, data[4], width, label='damage', color='b')
+        reward_weights.bar(x + width, data[5], width, label='injury', color='r')
         reward_weights.set_ylabel('Reward weight')
         reward_weights.set_xlabel('Individual rank')
         reward_weights.set_title('Individual reward weights')
