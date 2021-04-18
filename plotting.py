@@ -189,9 +189,9 @@ class PlotterV2:
         data = np.empty((6 + 1, self.top), dtype=np.float32)
         ent = 0
         for i in range(self.top):
-            data[0][i] = (self.pop.individuals[i].behavior_stats['win_rate'] + 21) / 42.0
-            data[1][i] = self.pop.individuals[i].behavior_stats['move_rate']
-            data[2][i] = self.pop.individuals[i].behavior_stats['no_op_rate']
+            data[0][i] = (self.pop.individuals[i].behavior_stats['win_rate'])
+            data[1][i] = self.pop.individuals[i].behavior_stats['avg_length'] / 1786.0
+            data[2][i] = self.pop.individuals[i].behavior_stats['mean_distance'] / 2.0
             data[3][i] = self.pop.individuals[i].reward_weight[0]
             data[4][i] = self.pop.individuals[i].reward_weight[1]
             data[5][i] = self.pop.individuals[i].reward_weight[2]
@@ -199,8 +199,8 @@ class PlotterV2:
             data[6][i] = self.pop.individuals[i].gen
         self.mean_ent_hist.append(ent/float(self.top))
         bars.bar(x - width, data[0], width, label='Win rate', color='y')
-        bars.bar(x,  data[1], width, label='Move rate', color='b')
-        bars.bar(x + width, data[2], width, label='No act rate', color='r')
+        bars.bar(x,  data[1], width, label='Mean length', color='b')
+        bars.bar(x + width, data[2], width, label='Mean distance', color='r')
 
         bars.set_ylabel('Scores')
         bars.set_xlabel('Individual Generations')
@@ -219,8 +219,8 @@ class PlotterV2:
                     color = 'r' if index in self.selected else 'k'
 
             opti.plot(*self.scores[:, index, 1], marker='o', color=color)
-        opti.set_ylabel('Lazy')
-        opti.set_xlabel('Busy')
+        opti.set_ylabel('Defensive')
+        opti.set_xlabel('Aggressive')
         opti.set_title('Selected individuals')
 
         ticks = list(range(len(self.mean_ent_hist)))

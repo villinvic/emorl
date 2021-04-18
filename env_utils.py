@@ -69,12 +69,19 @@ class Boxing(dict):
 
         self['objectives'] = ['win_rate', 'avg_length', 'mean_distance']
 
+        self.action_space_dim = 18
+
+
+
         self.goal_dim = len(self['objectives'])
 
         self.behavior_functions = [
             lambda x: np.array([x.behavior_stats[self['objectives'][0]], -x.behavior_stats[self['objectives'][1]]]),
             lambda x: np.array([x.behavior_stats[self['objectives'][0]], x.behavior_stats[self['objectives'][2]]]),
         ]
+
+    def action_to_id(self, action_id):
+        return action_id
 
     def preprocess(self, obs):
         return (obs[self.indexes] - self.centers) * self.scales
@@ -85,9 +92,9 @@ class Boxing(dict):
     def win(self, done, obs):
         if done:
             d = obs[4]/self.scales[4] - obs[5]/self.scales[5]
-            if d > 50:
+            if d > 30:
                 return 1
-            else :
+            elif d < 0:
                 return -1
                 
         return 0
@@ -104,6 +111,12 @@ name2class = {'Pong-ramNoFrameskip-v4': Pong('Pong-ramNoFrameskip-v4'),
               'Pong-ram-v0': Pong('Pong-ram-v0'),
               'Pong-ramDeterministic-v4': Pong('Pong-ramDeterministic-v4'),
               'Boxing-ramNoFrameskip-v4': Boxing('Boxing-ramNoFrameskip-v4'),
-              'Boxing-ramDeterministic-v4': Boxing('Boxing-ramDeterministic-v4')}
+              'Boxing-ramDeterministic-v4': Boxing('Boxing-ramDeterministic-v4'),
+              }
 
+
+# TODO
+# play loop
+# eval loop
+# plotting
 
