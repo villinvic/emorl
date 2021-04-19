@@ -141,7 +141,9 @@ class Collector:
             for index in range(len(offspring)):
                 scores[objective_num, index+self.population.size] = function(offspring[index])
 
-        frontiers = nd_sort(scores, n_behavior, self.epsilon)
+
+        frontiers = list(reversed(np.argsort(scores[0,:,0])[np.newaxis])) # (SOP1)
+        #nd_sort(scores, n_behavior, self.epsilon) (MOP1)
         selected = []
         i = 0
         sparse_select = None

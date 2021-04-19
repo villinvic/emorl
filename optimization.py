@@ -62,8 +62,6 @@ def nd_sort(scores, n_objectives, epsilon):
     frontiers = [[]]
     assert n_objectives > 1
     indexes = np.array(list(reversed(argsort_with_order(scores))))
-    print(indexes)
-
     for index in indexes:
         x = len(frontiers)
         k = 0
@@ -95,10 +93,8 @@ def cd_select(scores, indexes, size):
     distances = [np.inf] * len(indexes)
     distances_2 = [np.inf] * len(indexes)
     comparing_score = deepcopy(scores[:, :, -1])
-    print(comparing_score)
     for i in range(len(comparing_score)):
         comparing_score[i] /= np.max(np.abs(comparing_score[i]))
-    print(comparing_score)
 
     for i, index in enumerate(indexes):
         for index2 in indexes[:index:]:
