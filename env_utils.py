@@ -72,13 +72,22 @@ class Boxing(dict):
         self.action_space_dim = 18
 
 
-
         self.goal_dim = len(self['objectives'])
 
         self.behavior_functions = [
             lambda x: np.array([x.behavior_stats[self['objectives'][0]], -x.behavior_stats[self['objectives'][1]]]),
             lambda x: np.array([x.behavior_stats[self['objectives'][0]], x.behavior_stats[self['objectives'][2]]]),
-        ]
+        ] # MOP1, SOP1
+        
+        self.behavior_functions = [
+            lambda x: np.array([x.behavior_stats[self['objectives'][0]], 0]),
+            lambda x: np.array([x.behavior_stats[self['objectives'][1]], 0]),
+            lambda x: np.array([x.behavior_stats[self['objectives'][2]], 0]),
+            
+        ] # MOP2
+        
+        
+        
 
     def action_to_id(self, action_id):
         return action_id
