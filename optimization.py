@@ -44,10 +44,11 @@ def argsort_with_order(seq):
     '''
     supposing there is only one sub objective
     '''
-    seqq = np.concatenate([seq[0,:,0][:, np.newaxis]] + [seqq[:, np.newaxis] for seqq in seq[:,:,1]], axis=1)
+    #seqq = np.concatenate([seq[0,:,0][:, np.newaxis]] + [seqq[:, np.newaxis] for seqq in seq[:,:,1]], axis=1)
+    seqq = np.concatenate([seqq[:, np.newaxis] for seqq in seq[:,:,0]], axis=1)
 
-    names_l = [str(i) for i in range(1+len(seq))]
-    f = ', '.join(['f8' for _ in range(1+len(seq))])
+    names_l = [str(i) for i in range(len(seq))] # +1
+    f = ', '.join(['f8' for _ in range(len(seq))]) # +1
     names = ', '.join(names_l)
 
 
@@ -92,7 +93,7 @@ def cd_select(scores, indexes, size):
     indexes = np.array(indexes)
     distances = [np.inf] * len(indexes)
     distances_2 = [np.inf] * len(indexes)
-    comparing_score = deepcopy(scores[:, :, -1])
+    comparing_score = deepcopy(scores[:, :, 0]) # : : -1
     for i in range(len(comparing_score)):
         comparing_score[i] /= np.max(np.abs(comparing_score[i]))
 

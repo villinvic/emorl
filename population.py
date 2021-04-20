@@ -65,6 +65,7 @@ class Population:
             w = dummy_random.get_weights()
             self.individuals[i] = LightIndividual(sub_goals)
             self.individuals[i].behavior_stats = {o: -np.inf for o in (objectives+['entropy'])}
+            self.individuals[i].behavior_stats['avg_length'] = np.inf
             '''
             for j in range(len(w['pi'])):
                 if isinstance(w['pi'][j], np.ndarray) and len(w['pi'][j] > 0):

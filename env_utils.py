@@ -80,7 +80,7 @@ class Boxing(dict):
         ] # MOP1, SOP1
         
         self.behavior_functions = [
-        #    lambda x: np.array([x.behavior_stats[self['objectives'][0]], 0]), (SOP2)
+            lambda x: np.array([x.behavior_stats[self['objectives'][0]], 0]), # comment for (SOP2)
             lambda x: np.array([-x.behavior_stats[self['objectives'][1]], 0]),
             lambda x: np.array([x.behavior_stats[self['objectives'][2]], 0]),
             
@@ -124,4 +124,6 @@ name2class = {'Pong-ramNoFrameskip-v4': Pong('Pong-ramNoFrameskip-v4'),
 # play loop
 # eval loop
 # plotting
+# auto change plotting, optimization etc...
+# SOP1 MOP1 SOP2 MOP2
 

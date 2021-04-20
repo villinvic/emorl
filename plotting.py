@@ -218,7 +218,7 @@ class PlotterV2:
                 else:
                     color = 'r' if index in self.selected else 'k'
 
-            opti.plot(*self.scores[:, index, 0], marker='o', color=color)  # self.scores[:, index, 1] (!MOP2)
+            opti.plot(*self.scores[1:, index, 0], marker='o', color=color)  # self.scores[:, index, 1] (!MOP2)
         opti.set_ylabel('Defensive')
         opti.set_xlabel('Aggressive')
         opti.set_title('Selected individuals')
