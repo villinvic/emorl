@@ -80,7 +80,7 @@ class Boxing(dict):
         ] # MOP1, SOP1
         
         self.behavior_functions = [
-            lambda x: np.array([x.behavior_stats[self['objectives'][0]], 0]),
+        #    lambda x: np.array([x.behavior_stats[self['objectives'][0]], 0]), (SOP2)
             lambda x: np.array([-x.behavior_stats[self['objectives'][1]], 0]),
             lambda x: np.array([x.behavior_stats[self['objectives'][2]], 0]),
             
