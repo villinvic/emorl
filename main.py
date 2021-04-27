@@ -21,12 +21,13 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 def RUN(env='Boxing-ramNoFrameskip-v4', client_mode=False, collector_ip=None, size=15, n_server=4, n_send=1,
-        epsilon=0.0, checkpoint_dir='checkpoint/', start_from=None):
+        epsilon=0.0, checkpoint_dir='checkpoint/', problem ='MOP3', start_from=None):
 
     if start_from == 'latest':
         pass
 
-    collector = Collector(env, size, n_server, n_send, epsilon, checkpoint_dir, start_from, client_mode, collector_ip)
+    collector = Collector(env, size, n_server, n_send, epsilon, checkpoint_dir, problem,
+                          start_from, client_mode, collector_ip)
 
     collector.main_loop()
 

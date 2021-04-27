@@ -36,6 +36,16 @@ class PopulationObserver:
 
     def observe(self):
         print('--------Population Observation Stared--------')
+        extremes = []
+        for goal in self.util['objectives'] :
+            extremes.append((goal, max(self.to_observe.individuals, key= lambda x: goal.make(x))))
+            
+        print('--------Observing extreme individuals--------')
+        for goal, individual in extremes:
+            print('Best regarding', goal, ':')
+            pprint(individual.behavior_stats)
+            self.play(-1, individual.get_weights())
+        
         for index, individual in enumerate(self.to_observe.individuals):
             print('Individual %d stats :' % index)
             pprint(individual.behavior_stats)

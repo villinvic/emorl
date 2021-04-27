@@ -31,19 +31,15 @@ def is_dominated(x_scores, y_scores, epsilon):
             eps = epsilon
 
         if x_scores[i] > y_scores[i] + eps:
-            print(x_scores, y_scores, True)
             return True
         elif x_scores[i] < y_scores[i]:
-            print(x_scores, y_scores, False)
             return False
 
     return False
 
 
 def argsort_with_order(seq):
-    '''
-    supposing there is only one sub objective
-    '''
+
     #seqq = np.concatenate([seq[0,:,0][:, np.newaxis]] + [seqq[:, np.newaxis] for seqq in seq[:,:,1]], axis=1)
     seqq = np.concatenate([seqq[:, np.newaxis] for seqq in seq[:,:,0]], axis=1)
 
@@ -93,13 +89,10 @@ def cd_select(scores, indexes, size):
     indexes = np.array(indexes)
     distances = [np.inf] * len(indexes)
     distances_2 = [np.inf] * len(indexes)
-    comparing_score = deepcopy(scores[:, :, 0]) # : : -1
-    for i in range(len(comparing_score)):
-        comparing_score[i] /= np.max(np.abs(comparing_score[i]))
 
     for i, index in enumerate(indexes):
         for index2 in indexes[:index:]:
-            dist = distance(comparing_score[:, index], comparing_score[:, index2])
+            dist = distance(scores[:, index], scores[:, index2])
             if dist < distances[i]:
                 distances_2[i] = distances[i]
                 distances[i] = dist

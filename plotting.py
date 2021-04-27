@@ -164,74 +164,77 @@ colors = {
 
 class PlotterV2:
 
-    def __init__(self, dump_path='generations/', top=10):
+    def __init__(self, objectives, dump_path='generations/', top=10):
         super(PlotterV2, self).__init__()
+        self.objectives = objectives
+        self.objective_dim = len(objectives)
         self.path = dump_path
         self.exit = False
         self.top = top
         self.updated = False
         self.mean_ent_hist = []
+        self.colors = ['y', 'b', 'r', 'g', 'c', 'm']
 
-    def update(self, pop, scores, selected, sparse_select, sparse_frontier, gen):
-        self.pop = pop
-        self.scores = scores
-        self.selected = selected
-        self.sparse_select = sparse_select
-        self.sparse_frontier = sparse_frontier
-        self.gen = gen
-        self.updated = True
-
-    def plot(self):
+    def plot(self, individuals, offspring, selected, sparse_frontier, sparse_select, generation):
         x = np.arange(10)
         width = 0.2
+        size = len(individuals)
+        total_size = len(offspring) + size
         fig, ((bars, opti), (entropy, reward_weights)) = plt.subplots(2, 2, figsize=(10, 10))
         fig.tight_layout()
-        data = np.empty((6 + 1, self.top), dtype=np.float32)
+        data = np.empty((self.objective_dim*2+1, total_size), dtype=np.float32)
         ent = 0
-        for i in range(self.top):
-            data[0][i] = (self.pop.individuals[i].behavior_stats['win_rate'])
-            data[1][i] = self.pop.individuals[i].behavior_stats['avg_length'] / 1786.0
-            data[2][i] = self.pop.individuals[i].behavior_stats['mean_distance'] / 2.0
-            data[3][i] = self.pop.individuals[i].reward_weight[0]
-            data[4][i] = self.pop.individuals[i].reward_weight[1]
-            data[5][i] = self.pop.individuals[i].reward_weight[2]
-            ent += self.pop.individuals[i].behavior_stats['entropy']
-            data[6][i] = self.pop.individuals[i].gen
-        self.mean_ent_hist.append(ent/float(self.top))
-        bars.bar(x - width, data[0], width, label='Win rate', color='y')
-        bars.bar(x,  data[1], width, label='Mean length', color='b')
-        bars.bar(x + width, data[2], width, label='Mean distance', color='r')
+
+        for i, individual in enumerate(np.concatenate([individuals, offspring])):
+            for j, objective in enumerate(self.objectives):
+                data[j][i] = objective.make(individual)
+                data[j+self.objective_dim][i] = individual.reward_weight[j]
+            ent += individual.behavior_stats['entropy']
+            data[-1][i] = individual.gen
+
+        self.mean_ent_hist.append(ent/float(total_size))
+
+        offset = x - width
+        delta = 3 * width
+
+        for i, objective in enumerate(self.objectives):
+            bars.bar(offset+i*delta/float(self.objective_dim), data[i, selected[:self.top]],
+                     width, label=objective.name, color=self.colors[i])
 
         bars.set_ylabel('Scores')
         bars.set_xlabel('Individual Generations')
-        bars.set_title('Top %d scores, ranked by win rate' % self.top)
+        bars.set_title('Top %d scores' % self.top)
         bars.set_xticks(x)
-        bars.set_xticklabels(data[-1].astype(int))
+        bars.set_xticklabels(data[-1, selected[:self.top]].astype(int))
         bars.legend()
-        print(self.sparse_select, self.sparse_frontier)
-        for index in range(len(self.scores[0])):
-            if self.sparse_select is not None and index in self.sparse_frontier:
-                color = (0, 0, 1.0) if index not in self.sparse_select else (0.1, 0.7, 0.2)
+        print(sparse_select, sparse_frontier)
+        for index in range(total_size):
+            if sparse_select is not None and index in sparse_frontier:
+                color = (0, 0, 1.0) if index not in sparse_select else (0.1, 0.7, 0.2)
             else:
-                if index >= self.pop.size:
-                    color = (1.0, 0.6, 0.6) if index in self.selected else (0.4, 0.4, 0.4)
+                if index >= size:
+                    color = (1.0, 0.6, 0.6) if index in selected else (0.4, 0.4, 0.4)
                 else:
-                    color = 'r' if index in self.selected else 'k'
+                    color = 'r' if index in selected else 'k'
 
-            opti.plot(*self.scores[1:, index, 0], marker='o', color=color)  # self.scores[:, index, 1] (!MOP2)
+            opti.plot(data[1, index], data[2, index], marker='o', color=color)
         opti.set_ylabel('Defensive')
         opti.set_xlabel('Aggressive')
         opti.set_title('Selected individuals')
+        opti.set_xlim([-0.05,1.05])
+        opti.set_ylim([-0.05,1.05])
 
         ticks = list(range(len(self.mean_ent_hist)))
         entropy.plot(ticks, self.mean_ent_hist)
         entropy.set_ylabel('Entropy')
         entropy.set_xlabel('Iteration')
-        entropy.set_title('Top 10 mean entropy over iterations')
-        
-        reward_weights.bar(x - width, data[3], width, label='win', color='y')
-        reward_weights.bar(x, data[4], width, label='damage', color='b')
-        reward_weights.bar(x + width, data[5], width, label='injury', color='r')
+        entropy.set_title('Population mean entropy over iterations')
+
+
+        # Add to util reward names...
+        reward_weights.bar(x - width, data[3, selected[:self.top]], width, label='win', color='y')
+        reward_weights.bar(x, data[4, selected[:self.top]], width, label='damage', color='b')
+        reward_weights.bar(x + width, data[5, selected[:self.top]], width, label='injury', color='r')
         reward_weights.set_ylabel('Reward weight')
         reward_weights.set_xlabel('Individual rank')
         reward_weights.set_title('Individual reward weights')
@@ -243,7 +246,7 @@ class PlotterV2:
 
         fig.subplots_adjust(bottom=0.05, left=0.1, top=0.96, hspace=0.2, wspace=0.2)
 
-        fig.savefig(self.path+'iteration_%d.png' % (self.gen-1))
+        fig.savefig(self.path+'iteration_%d.png' % (generation))
         plt.close(fig)
 
 '''

@@ -29,10 +29,11 @@ from datetime import datetime
 class EXIT(Exception) : pass
 
 class Collector:
-    def __init__(self, env_id, size, n_server, n_send, epsilon, checkpoint_dir='checkpoint/', start_from=None,
-                 client_mode=False, ip=None):
+    def __init__(self, env_id, size, n_server, n_send, epsilon, checkpoint_dir='checkpoint/', problem='MOP3',
+                 start_from=None, client_mode=False, ip=None):
         self.client_mode = client_mode
 
+        self.problem = problem
         self.n_server = n_server
         self.servers = [None] * n_server
         if ip is None:
@@ -53,7 +54,8 @@ class Collector:
             self.goal_dim = self.util.goal_dim
             self.n_send = n_send
             self.epsilon = epsilon
-            self.behavior_functions = self.util.behavior_functions
+            self.behavior_functions = self.util['problems'][self.problem]['behavior_functions']
+            self.PMOO_complexity = self.util['problems'][self.problem]['complexity']
             self.size = size
             self.ckpt_dir = checkpoint_dir
 
@@ -72,7 +74,7 @@ class Collector:
             self.evolved_pipe = context.socket(zmq.PULL)
             self.evolved_pipe.bind("tcp://%s:5656" % self.ip)
 
-            self.plotter = PlotterV2()
+            self.plotter = PlotterV2(objectives=self.util['objectives'])
             self.serializer = Serializer(checkpoint_dir)
 
             self.generation = 1
@@ -134,16 +136,23 @@ class Collector:
 
     def select(self, offspring):
         n_behavior = len(self.behavior_functions)
-        scores = np.empty((n_behavior, len(self.population.individuals) + len(offspring), 2), dtype=np.float32)
-        for objective_num, function in enumerate(self.behavior_functions):
+        scores = np.empty((n_behavior, len(self.population.individuals) + len(offspring),
+                           self.PMOO_complexity), dtype=np.float32)
+
+
+        for objective_num, f in enumerate(self.behavior_functions):
             for index in range(self.population.size):
-                scores[objective_num, index, :] = function(self.population.individuals[index])
+                scores[objective_num, index] = f(self.population.individuals[index])
             for index in range(len(offspring)):
-                scores[objective_num, index+self.population.size] = function(offspring[index])
+                scores[objective_num, index+self.population.size] = f(offspring[index])
 
+        if n_behavior > 1 :
+            frontiers = nd_sort(scores, n_behavior, self.epsilon)
+        elif self.PMOO_complexity == 1:
+            frontiers = [[x] for x in list(reversed(np.argsort(scores[0,:,0])))]
+        else:
+            raise NotImplementedError
 
-        #frontiers = [[x] for x in list(reversed(np.argsort(scores[0,:,0])))] # (SOP1)
-        frontiers = nd_sort(scores, n_behavior, self.epsilon) # (MOP1, MOP2)
         selected = []
         i = 0
         sparse_select = None
@@ -157,6 +166,10 @@ class Collector:
                 sparse_frontier = frontiers[i]
                 selected.extend(sparse_select)
             i += 1
+
+        self.plotter.plot(self.population.individuals, offspring, np.array(selected), sparse_frontier, sparse_select,
+                          self.generation-1)
+
         new_pop = np.empty((self.population.size,), dtype=LightIndividual)
         for i, index in enumerate(selected):
             if index < self.population.size:
@@ -164,9 +177,9 @@ class Collector:
             else:
                 new_pop[i] = offspring[index - self.population.size]
 
+
         self.population.individuals = new_pop
 
-        return scores, selected, sparse_select, sparse_frontier
 
     def exit(self):
         print('Exiting...')
@@ -175,7 +188,7 @@ class Collector:
 
         try:
             if not self.client_mode:
-                ckpt_name = '--'.join([str(self.population.size), str(self.generation-1),
+                ckpt_name = '--'.join([str(self.population.size), str(self.generation),
                                        str(datetime.now()).replace(' ', '')])
                 self.serializer.dump(self.population, ckpt_name)
         except Exception as e:
@@ -200,25 +213,14 @@ class Collector:
 
             self.start_servers()
             time.sleep(6)
-            start = True
-            scores = None
-            sparse_select = None
-            sparse_frontier = None
-            selected = None
             try:
                 while True:
                     self.generation += 1
                     self.send_mating()
 
-                    if start:
-                        start = False
-                    else:
-                        self.plotter.update(self.population, scores, selected, sparse_select, sparse_frontier,
-                                            self.generation-1)
-                        self.plotter.plot()
 
                     offspring = self.receive_evolved()
-                    scores, selected, sparse_select, sparse_frontier = self.select(offspring)
+                    self.select(offspring)
 
                     print(self.population)
 

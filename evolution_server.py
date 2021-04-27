@@ -25,8 +25,8 @@ import socket
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=10, batch_size=16, max_train=1500,
-                 early_stop=100, round_length=300, min_eval=30, min_games=30, subprocess=True, mutation_rate=0.5):
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=10, batch_size=16, max_train=20,
+                 early_stop=100, round_length=300, min_eval=30, min_games=1, subprocess=True, mutation_rate=0.5):
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -171,6 +171,7 @@ class EvolutionServer:
                 gaussian_noised = np.random.normal(loc=q['r'], scale=q['r']*0.6, size=q['r'].shape)
                 q['r'] = np.clip(gaussian_noised, 1e-4, np.inf)
 
+    """
     def eval(self, player: Individual, min_frame):
         r = {
             'game_reward': 0.0,
@@ -280,6 +281,7 @@ class EvolutionServer:
 
         return observation
 
+    """
     def DRL(self, offspring):
         trained = np.empty_like(offspring)
         for i, q in enumerate(offspring):
@@ -295,7 +297,15 @@ class EvolutionServer:
             no_improvement_counter = 0
             # self.player.pi.reset_optim()
             while training_step < self.max_train:#time() - start_time < self.max_train * 60:
-                obs = self.play(self.player, obs)
+                obs = self.util.play(self.player,
+                                     self.env,
+                                     self.batch_size,
+                                     self.traj_length,
+                                     self.frame_skip,
+                                     self.trajectory,
+                                     self.action_dim,
+                                     obs)
+
                 self.player.pi.train(self.trajectory['state'], self.trajectory['action'][:, :-1], self.trajectory['rew'][:, :-1], -1)
                 training_step += 1
                 rew += np.sum(self.trajectory['base_rew'][:, :-1])
@@ -322,7 +332,14 @@ class EvolutionServer:
     def evaluate(self, trained):
         for individual in trained:
             self.player.set_weights(individual['weights'])
-            individual['eval'] = self.eval(self.player, self.min_eval)
+            individual['eval'] = self.util.eval(self.player,
+                                                self.env,
+                                                self.action_dim,
+                                                self.frame_skip,
+                                                self.min_eval,
+                                                self.min_games)
+
+            print(individual['eval'])
 
     def run(self):
         print('[%d] started' % self.ID)
