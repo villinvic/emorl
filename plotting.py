@@ -164,13 +164,14 @@ colors = {
 
 class PlotterV2:
 
-    def __init__(self, objectives, dump_path='generations/', top=10):
+    def __init__(self, objectives, dump_path='generations/', top=10, suffix=''):
         super(PlotterV2, self).__init__()
         self.objectives = objectives
         self.objective_dim = len(objectives)
         self.path = dump_path
         self.exit = False
         self.top = top
+        self.suffix = suffix
         self.updated = False
         self.mean_ent_hist = []
         self.colors = ['y', 'b', 'r', 'g', 'c', 'm']
@@ -246,7 +247,7 @@ class PlotterV2:
 
         fig.subplots_adjust(bottom=0.05, left=0.1, top=0.96, hspace=0.2, wspace=0.2)
 
-        fig.savefig(self.path+'iteration_%d.png' % (generation))
+        fig.savefig(self.path+'iteration_%d_%s.png' % (generation, self.suffix))
         plt.close(fig)
 
 '''

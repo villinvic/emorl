@@ -30,12 +30,14 @@ class EXIT(Exception) : pass
 
 class Collector:
     def __init__(self, env_id, size, n_server, n_send, epsilon, checkpoint_dir='checkpoint/', problem='MOP3',
-                 start_from=None, client_mode=False, ip=None):
+                 start_from=None, client_mode=False, ip=None, max_gen=1e10):
         self.client_mode = client_mode
+
 
         self.problem = problem
         self.n_server = n_server
         self.servers = [None] * n_server
+        self.max_gen = max_gen
         if ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -74,7 +76,7 @@ class Collector:
             self.evolved_pipe = context.socket(zmq.PULL)
             self.evolved_pipe.bind("tcp://%s:5656" % self.ip)
 
-            self.plotter = PlotterV2(objectives=self.util['objectives'])
+            self.plotter = PlotterV2(objectives=self.util['objectives'], suffix=self.problem)
             self.serializer = Serializer(checkpoint_dir)
 
             self.generation = 1
@@ -189,7 +191,7 @@ class Collector:
         try:
             if not self.client_mode:
                 ckpt_name = '--'.join([str(self.population.size), str(self.generation),
-                                       str(datetime.now()).replace(' ', '')])
+                                       str(datetime.now()).replace(' ', '')]) + self.problem
                 self.serializer.dump(self.population, ckpt_name)
         except Exception as e:
             print('serializer failed :', e)
@@ -201,7 +203,7 @@ class Collector:
                 while True:
                     time.sleep(1)
             except (KeyboardInterrupt, EXIT):
-                self.exit()
+                pass
 
         else:
             if self.start_from is not None:
@@ -224,7 +226,11 @@ class Collector:
 
                     print(self.population)
 
+                    if self.generation >= self.max_gen:
+                        break
+
             except (KeyboardInterrupt, EXIT):
-                self.exit()
+                pass
+        self.exit()
         print('EXITED.')
 
