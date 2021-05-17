@@ -187,7 +187,9 @@ class Collector:
         print('Exiting...')
         for i in range(self.n_server):
             self.servers[i].send_signal(signal.SIGINT)
-        self.mating_pipe.close()
+        if not self.client_mode:
+            self.mating_pipe.unbind("tcp://%s:5655" % self.ip)
+            self.evolved_pipe.unbind("tcp://%s:5656" % self.ip)
 
         try:
             if not self.client_mode:
