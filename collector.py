@@ -187,6 +187,7 @@ class Collector:
         print('Exiting...')
         for i in range(self.n_server):
             self.servers[i].send_signal(signal.SIGINT)
+        self.mating_pipe.close()
 
         try:
             if not self.client_mode:
