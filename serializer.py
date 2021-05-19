@@ -12,7 +12,7 @@ class Serializer:
         print('Successfully saved population.')
 
     def load(self, ckpt_name):
-        full_path = self.path + ckpt_name + '.ckpt'
+        full_path = ckpt_name
         with open(full_path, 'rb') as f:
             pop = pickle.load(f)
 

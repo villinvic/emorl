@@ -27,10 +27,18 @@ def RUN(env='Boxing-ramNoFrameskip-v4', client_mode=False, collector_ip=None, si
     if start_from == 'latest':
         pass
 
-    if problem =='ALL':
+    if not client_mode and problem =='ALL':
+
+        if start_from is not None:
+            _, _, filenames = next(os.walk(start_from))
         for p in ['SOP1','SOP2', 'MOP1', 'MOP2', 'MOP3']:
+            
+            for f in filenames:
+                if p in f:
+                    break   
+           
             collector = Collector(env, size, n_server, n_send, epsilon, checkpoint_dir, p,
-                                  start_from, client_mode, collector_ip, max_gen)
+                                  start_from+f, client_mode, collector_ip, max_gen)
             collector.main_loop()
             time.sleep(1)
 
