@@ -152,7 +152,7 @@ class Boxing(EnvUtil):
         self['problems']['SOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][0])
         self['problems']['SOP2']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
                                                                                    self['objectives'][2],
-                                                                                   sum=[1,2])
+                                                                                   sum_=[1,2])
 
         self['problems']['MOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
                                                                                    self['objectives'][2])
