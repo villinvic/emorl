@@ -39,13 +39,13 @@ class EnvUtil(dict):
             })
 
     @staticmethod
-    def build_objective_func(*args, prioritized=None, sum=False):
+    def build_objective_func(*args, prioritized=None, sum_=None):
         funcs = []
         if prioritized is not None:
             for i in range(len(args)):
                 funcs = [lambda x, arg=arg: np.array([prioritized.make(x), arg.make(x)]) for arg in args]
-        elif sum:
-            funcs.append(lambda x: np.sum(np.array([arg.make(x) for arg in args])))
+        elif sum_ is not None:
+            funcs.append(lambda x: np.sum(np.array([args[i].make(x) for i in sum_])))
         else :
             funcs = [lambda x, arg=arg: np.array([arg.make(x)]) for arg in args]
 
@@ -152,7 +152,7 @@ class Boxing(EnvUtil):
         self['problems']['SOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][0])
         self['problems']['SOP2']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
                                                                                    self['objectives'][2],
-                                                                                   sum=True)
+                                                                                   sum=[1,2])
 
         self['problems']['MOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
                                                                                    self['objectives'][2])
@@ -325,7 +325,7 @@ class Tennis(EnvUtil):
         self['problems']['SOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][0])
         self['problems']['SOP2']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
                                                                                    self['objectives'][2],
-                                                                                   sum=True)
+                                                                                   sum=[1,2])
 
         self['problems']['MOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
                                                                                    self['objectives'][2])
