@@ -365,9 +365,9 @@ class Tennis(EnvUtil):
 
     def is_back(self, obs):
         if self.side:
-            return obs[6] > 1.45
+            return obs[6] > 1.46
         else:
-            return obs[6] < 0.03
+            return obs[6] < 0.02
 
     def is_front(self,obs):
         if self.side:
@@ -493,9 +493,9 @@ class Tennis(EnvUtil):
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
 
-                trajectory['rew'][batch_index, frame_count] = reward * player.reward_weight[0] + \
-                                                              front * player.reward_weight[1] + \
-                                                              back * player.reward_weight[2]
+                trajectory['rew'][batch_index, frame_count] = reward #* player.reward_weight[0] + \
+                                                              #front * player.reward_weight[1] + \
+                                                              #back * player.reward_weight[2]
 
                 trajectory['base_rew'][batch_index, frame_count] = reward
 
