@@ -2,6 +2,7 @@ import gym
 from copy import copy
 import numpy as np
 from population import Individual
+import time
 
 class Objective:
     def __init__(self, name, nature=1, domain=(0.,1.)):
@@ -309,9 +310,16 @@ class Tennis(EnvUtil):
                                        player_score=69)
 
         self.indexes = np.array([value for value in self['ram_locations'].values()], dtype=np.int32)
-        self.centers = np.array([0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
-        self.scales = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01], dtype=np.float32)
+        self.reversed_indexes = np.array([26,24,70,16,17,27,25,69], dtype=np.int32)
+        self.centers = np.array([0, 0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
+        self.scales = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01], dtype=np.float32)
         self.state_dim = len(self.indexes)
+        self.x_bounds = (0.91, 1.48)
+        # 0 - 70 71 - 148
+        self.side = True
+
+        self.points = np.array([71, 72], dtype=np.int32)
+        self.top_side_points = np.array([0, 3, 4, 7, 8, 11])
 
         self['objectives'] = [
             Objective('win_rate'),
@@ -325,7 +333,7 @@ class Tennis(EnvUtil):
         self['problems']['SOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][0])
         self['problems']['SOP2']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
                                                                                    self['objectives'][2],
-                                                                                   sum_=[1,2])
+                                                                                   sum_=True)
 
         self['problems']['MOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
                                                                                    self['objectives'][2])
@@ -340,26 +348,44 @@ class Tennis(EnvUtil):
                                                                                    self['objectives'][1],
                                                                                    self['objectives'][2])
 
+        self.mins = [np.inf, np.inf]
+        self.maxs = [-np.inf, -np.inf]
+
     def action_to_id(self, action_id):
         return action_id
 
     def preprocess(self, obs):
-        return (obs[self.indexes] - self.centers) * self.scales
 
-    def distance(self, obs):
-        return np.sqrt(np.square(obs[0] - obs[2]) + np.square(obs[1] - obs[3]))
+        if self.side:
+            indexes = self.indexes
+        else:
+            indexes = self.reversed_indexes
+        return (obs[indexes] - self.centers) * self.scales
 
-    def win(self, done, obs, eval=False):
-        if done:
-            return obs[4] / self.scales[4] - obs[5] / self.scales[5]
+    def is_back(self, obs):
+        if self.side:
+            return obs[6] > 1.45
+        else:
+            return obs[6] < 0.03
 
-        return 0
+    def is_front(self,obs):
+        if self.side:
+            return obs[6] < 1.08
+        else:
+            return obs[6] > 0.4
 
-    def compute_damage(self, obs):
-        injury = obs[5 + self.state_dim] - obs[5]
-        damage = obs[4 + self.state_dim] - obs[4]
+    def win(self, obs, last_obs, eval=False):
+        dself = obs[7]-last_obs[7]
+        dopp = obs[2]-last_obs[2]
+        dscore = np.clip(dself, 0,1) - np.clip(dopp,0,1)
+        return dscore
 
-        return np.clip(damage / self.scales[4], 0, 2), np.clip(injury / self.scales[5], 0, 2)
+    def swap_court(self, full_obs):
+        total = np.sum(full_obs[self.points])
+        if total in self.top_side_points:
+            self.side = True
+        else:
+            self.side = False
 
     def eval(self, player: Individual,
              env,
@@ -370,24 +396,23 @@ class Tennis(EnvUtil):
 
         r = {
             'game_reward': 0.0,
-            'avg_length': 0.0,
+            'avg_length': 0.,
             'total_punition': 0.0,
-            'no_op_rate': 0.0,
-            'move_rate': 0.0,
-            'mean_distance': 0.0,
             'win_rate': 0.0,
             'entropy': 0.0,
             'eval_length': 0,
+            'front': 0.,
+            'back': 0.,
         }
-        frame_count = 0
+        frame_count = 0.
         n_games = 0
         actions = [0] * env.action_space.n
         dist = np.zeros((action_dim,), dtype=np.float32)
-        while frame_count < min_frame or n_games < min_games:
+        while frame_count < min_frame and n_games < min_games:
             done = False
             observation = self.preprocess(env.reset())
             observation = np.concatenate([observation, observation, observation, observation])
-            while not done:
+            while not done and frame_count < min_frame:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
                 dist += dist_
                 actions[action] += 1
@@ -397,14 +422,17 @@ class Tennis(EnvUtil):
                         self.action_to_id(action))
                     reward += rr
 
+                self.swap_court(observation_)
                 observation_ = self.preprocess(observation_)
+                r['win_rate'] += reward # self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
                 observation = np.concatenate([observation[len(observation) // 4:], observation_])
                 r['game_reward'] += reward
                 if reward < 0:
                     r['total_punition'] += reward
 
-                r['mean_distance'] += self.distance(observation_)
-                r['win_rate'] += int(self.win(done, observation_) > 30)
+                r['front'] += int(self.is_front(observation_))
+                r['back'] += int(self.is_back(observation_))
+
 
                 frame_count += 1
 
@@ -412,12 +440,12 @@ class Tennis(EnvUtil):
 
         print(actions)
         r['avg_length'] = frame_count / float(n_games)
-        print(r['win_rate'])
-        r['win_rate'] = r['win_rate'] / float(n_games)
-        r['mean_distance'] = r['mean_distance'] / float(frame_count)
+        r['win_rate'] = (r['win_rate'] + 24.*n_games)/(48.*n_games)
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
+        r['front'] /= frame_count
+        r['back'] /= frame_count
         return r
 
     def play(self, player: Individual,
@@ -444,16 +472,21 @@ class Tennis(EnvUtil):
                     observation_, rr, done, info = env.step(
                         self.action_to_id(action))
                     reward += rr
+
+                self.swap_court(observation_)
+
                 observation_ = self.preprocess(observation_)
-                win = int(self.win(done, observation_) > 0)
-                dmg, injury = self.compute_damage(observation)
+                # win = self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
+                front = float(self.is_front(observation_))
+                back = float(self.is_back(observation_))
+
 
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
 
-                trajectory['rew'][batch_index, frame_count] = 100 * win * player.reward_weight[0] + \
-                                                              dmg * player.reward_weight[1] + \
-                                                              -injury * player.reward_weight[2]
+                trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] + \
+                                                              front * player.reward_weight[1] + \
+                                                              back * player.reward_weight[2]
 
                 trajectory['base_rew'][batch_index, frame_count] = reward
 

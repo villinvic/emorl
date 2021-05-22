@@ -219,8 +219,8 @@ class PlotterV2:
                     color = 'r' if index in selected else 'k'
 
             opti.plot(data[1, index], data[2, index], marker='o', color=color)
-        opti.set_ylabel('Defensive')
-        opti.set_xlabel('Aggressive')
+        opti.set_ylabel('Back style')
+        opti.set_xlabel('Front style')
         opti.set_title('Selected individuals')
         opti.set_xlim([-0.05,1.05])
         opti.set_ylim([-0.05,1.05])
