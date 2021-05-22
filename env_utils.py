@@ -493,7 +493,7 @@ class Tennis(EnvUtil):
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
 
-                trajectory['rew'][batch_index, frame_count] = 100 * reward * player.reward_weight[0] + \
+                trajectory['rew'][batch_index, frame_count] = reward * player.reward_weight[0] + \
                                                               front * player.reward_weight[1] + \
                                                               back * player.reward_weight[2]
 
