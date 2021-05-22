@@ -313,9 +313,9 @@ class Tennis(EnvUtil):
         self.indexes = np.array([value for value in self['ram_locations'].values()], dtype=np.int32)
         self.reversed_indexes = np.array([26,24,70,16,17,27,25,69], dtype=np.int32)
         self.centers = np.array([0, 0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
-        self.scales = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01], dtype=np.float32)
+        self.scales = np.array([0.01, 0.01, 0.2, 0.01, 0.01, 0.01, 0.01, 0.2], dtype=np.float32)
         self.state_dim = len(self.indexes)
-        self.x_bounds = (0.91, 1.48)
+        self.y_bounds = (0.91, 1.48)
         # 0 - 70 71 - 148
         self.side = True
 
@@ -411,7 +411,9 @@ class Tennis(EnvUtil):
         dist = np.zeros((action_dim,), dtype=np.float32)
         while frame_count < min_frame and n_games < min_games:
             done = False
-            observation = self.preprocess(env.reset())
+            observation = env.reset()
+            self.swap_court(observation)
+            observation = self.preprocess(observation)
             observation = np.concatenate([observation, observation, observation, observation])
             while not done and frame_count < min_frame:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
@@ -465,7 +467,9 @@ class Tennis(EnvUtil):
         actions = [0] * action_dim
 
         if observation is None:
-            observation = self.preprocess(env.reset())
+            observation = env.reset()
+            self.swap_court(observation)
+            observation = self.preprocess(observation)
             observation = np.concatenate([observation, observation, observation, observation])
 
         for batch_index in range(batch_size):
@@ -489,7 +493,7 @@ class Tennis(EnvUtil):
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
 
-                trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] + \
+                trajectory['rew'][batch_index, frame_count] = 100 * reward * player.reward_weight[0] + \
                                                               front * player.reward_weight[1] + \
                                                               back * player.reward_weight[2]
 
