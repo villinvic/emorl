@@ -249,8 +249,6 @@ class Boxing(EnvUtil):
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
 
-        if frame_count == min_frame:
-            r['win_rate'] = -np.inf
         return r
 
     def play(self, player: Individual,
@@ -449,6 +447,10 @@ class Tennis(EnvUtil):
         r['eval_length'] = frame_count
         r['front'] /= frame_count
         r['back'] /= frame_count
+
+        if frame_count == min_frame:
+            r['win_rate'] = -np.inf
+
         return r
 
     def play(self, player: Individual,
