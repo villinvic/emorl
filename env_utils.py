@@ -248,6 +248,9 @@ class Boxing(EnvUtil):
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
+
+        if frame_count == min_frame:
+            r['win_rate'] = -np.inf
         return r
 
     def play(self, player: Individual,
