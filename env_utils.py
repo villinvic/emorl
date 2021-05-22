@@ -314,7 +314,7 @@ class Tennis(EnvUtil):
         self.reversed_indexes = np.array([26,24,70,16,17,27,25,69], dtype=np.int32)
         self.centers = np.array([0, 0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
         self.scales = np.array([0.01, 0.01, 0.2, 0.01, 0.01, 0.01, 0.01, 0.2], dtype=np.float32)
-        self.state_dim = len(self.indexes)
+        self.state_dim = len(self.indexes)+1
         self.y_bounds = (0.91, 1.48)
         # 0 - 70 71 - 148
         self.side = True
@@ -361,7 +361,7 @@ class Tennis(EnvUtil):
             indexes = self.indexes
         else:
             indexes = self.reversed_indexes
-        return (obs[indexes] - self.centers) * self.scales
+        return np.concatenate([(obs[indexes] - self.centers) * self.scales, [np.float32(self.side)]])
 
     def is_back(self, obs):
         if self.side:
