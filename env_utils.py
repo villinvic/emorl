@@ -494,14 +494,14 @@ class Tennis(EnvUtil):
                 actions[action] += 1
                 reward = 0
 
-                env.render()
-                time.sleep(0.15)
+                #env.render()
+                #time.sleep(0.15)
                 for _ in range(frame_skip):
                     observation_, rr, done, info = env.step(
                         self.action_to_id(action))
                     reward += rr
 
-                print(observation)
+                #print(observation)
                 self.swap_court(observation_)
 
                 observation_ = self.preprocess(observation_)
