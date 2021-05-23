@@ -309,15 +309,25 @@ class Tennis(EnvUtil):
                                        player_x=26,
                                        player_y=24,
                                        player_score=69,
-                                       ball_height=17,)
+                                       ball_height=17)
 
-        self.indexes = np.array([value for value in self['ram_locations'].values()], dtype=np.int32)
-        self.reversed_indexes = np.array([26,24,70,16,15,27,25,69,17], dtype=np.int32)
+        self.indexes_special = np.array([value for value in self['ram_locations'].values()], dtype=np.int32)
+        self.indexes = np.arange(86)
+        self.reversed_indexes = np.array([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,25,24,27,26,28,
+                                          29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,
+                                          55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,
+                                          81,82,83,84,85], dtype=np.int32)
         self.centers = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
-        self.scales = np.array([0.01, 0.01, 0.2, 0.01, 0.01, 0.01, 0.01, 0.2, 0.025], dtype=np.float32)
-        self.state_dim = len(self.indexes)+1
+        self.scales_special = np.array([0.007, 0.007, 0.2, 0.007, 0.005, 0.007, 0.007, 0.2, 0.025], dtype=np.float32)
+        self.centers = np.zeros((86,), dtype=np.float32)
+        self.scales = np.full((86,), fill_value=1/255., dtype=np.float32)
+        for i, index in enumerate(self.indexes_special):
+            self.scales[index] = self.scales_special[i]
+        self.state_dim = len(self.indexes)
         self.y_bounds = (0.91, 1.48)
         # 0 - 70 71 - 148
+        # 85
+
         self.side = True
 
         self.points = np.array([71, 72], dtype=np.int32)
@@ -364,20 +374,22 @@ class Tennis(EnvUtil):
             indexes = self.indexes
         else:
             indexes = self.reversed_indexes
-        return np.concatenate([(obs[indexes] - self.centers) * self.scales, [np.float32(self.side)]])
+        return (obs[indexes] - self.centers) * self.scales
 
     def is_back(self, obs):
+        #for ob, k in zip(obs, self['ram_locations'].keys()):
+        #    print(k, ob)
         if self.side:
-            return obs[6] > 1.46
+            return obs[24] > 1.46
         else:
-            return obs[6] < 0.02
+            return obs[24] < 0.02
 
     def is_front(self,obs):
         # print(obs[3]*100, obs[4]*100)
         if self.side:
-            return obs[6] < 1.08
+            return obs[24] < 1.08
         else:
-            return obs[6] > 0.4
+            return obs[24] > 0.4
 
     def win(self, obs, last_obs, eval=False):
         dself = obs[7]-last_obs[7]
@@ -418,7 +430,7 @@ class Tennis(EnvUtil):
             observation = env.reset()
             self.swap_court(observation)
             observation = self.preprocess(observation)
-            observation = np.concatenate([observation, observation, observation, observation])
+            observation = np.concatenate([observation, observation])
             while not done and frame_count < min_frame:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
                 dist += dist_
@@ -432,7 +444,7 @@ class Tennis(EnvUtil):
                 self.swap_court(observation_)
                 observation_ = self.preprocess(observation_)
                 r['win_rate'] += reward # self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
-                observation = np.concatenate([observation[len(observation) // 4:], observation_])
+                observation = np.concatenate([observation[len(observation) // 2:], observation_])
                 r['game_reward'] += reward
                 if reward < 0:
                     r['total_punition'] += reward
@@ -474,7 +486,7 @@ class Tennis(EnvUtil):
             observation = env.reset()
             self.swap_court(observation)
             observation = self.preprocess(observation)
-            observation = np.concatenate([observation, observation, observation, observation])
+            observation = np.concatenate([observation, observation])
 
         for batch_index in range(batch_size):
             for frame_count in range(traj_length):
@@ -482,14 +494,14 @@ class Tennis(EnvUtil):
                 actions[action] += 1
                 reward = 0
 
-                #env.render()
-                #time.sleep(0.15)
+                env.render()
+                time.sleep(0.15)
                 for _ in range(frame_skip):
                     observation_, rr, done, info = env.step(
                         self.action_to_id(action))
                     reward += rr
 
-                #print(observation_[10:20])
+                print(observation)
                 self.swap_court(observation_)
 
                 observation_ = self.preprocess(observation_)
@@ -501,17 +513,17 @@ class Tennis(EnvUtil):
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
 
-                trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] + \
-                                                              front * player.reward_weight[1] + \
-                                                              back * player.reward_weight[2]
+                trajectory['rew'][batch_index, frame_count] = reward#* 10 * player.reward_weight[0] + \
+                                                              #front * player.reward_weight[1] + \
+                                                              #back * player.reward_weight[2]
 
                 trajectory['base_rew'][batch_index, frame_count] = reward
 
                 if done:
                     observation = self.preprocess(env.reset())
-                    observation = np.concatenate([observation, observation, observation, observation])
+                    observation = np.concatenate([observation, observation])
                 else:
-                    observation = np.concatenate([observation[len(observation) // 4:], observation_])
+                    observation = np.concatenate([observation[len(observation) // 2:], observation_])
 
         return observation
 
