@@ -305,15 +305,16 @@ class Tennis(EnvUtil):
                                        enemy_y=25,
                                        enemy_score=70,
                                        ball_x=16,
-                                       ball_y=17,
+                                       ball_y=15,
                                        player_x=26,
                                        player_y=24,
-                                       player_score=69)
+                                       player_score=69,
+                                       ball_height=17,)
 
         self.indexes = np.array([value for value in self['ram_locations'].values()], dtype=np.int32)
-        self.reversed_indexes = np.array([26,24,70,16,17,27,25,69], dtype=np.int32)
-        self.centers = np.array([0, 0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
-        self.scales = np.array([0.01, 0.01, 0.2, 0.01, 0.01, 0.01, 0.01, 0.2], dtype=np.float32)
+        self.reversed_indexes = np.array([26,24,70,16,15,27,25,69,17], dtype=np.int32)
+        self.centers = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
+        self.scales = np.array([0.01, 0.01, 0.2, 0.01, 0.01, 0.01, 0.01, 0.2, 0.025], dtype=np.float32)
         self.state_dim = len(self.indexes)+1
         self.y_bounds = (0.91, 1.48)
         # 0 - 70 71 - 148
@@ -372,6 +373,7 @@ class Tennis(EnvUtil):
             return obs[6] < 0.02
 
     def is_front(self,obs):
+        # print(obs[3]*100, obs[4]*100)
         if self.side:
             return obs[6] < 1.08
         else:
@@ -479,25 +481,29 @@ class Tennis(EnvUtil):
                 action = player.pi.policy.get_action(observation)
                 actions[action] += 1
                 reward = 0
+
+                #env.render()
+                #time.sleep(0.15)
                 for _ in range(frame_skip):
                     observation_, rr, done, info = env.step(
                         self.action_to_id(action))
                     reward += rr
 
+                #print(observation_[10:20])
                 self.swap_court(observation_)
 
                 observation_ = self.preprocess(observation_)
                 # win = self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
-                not_front = float(not self.is_front(observation_))
-                not_back = float(not self.is_back(observation_))
+                front = float(self.is_front(observation_))
+                back = float(self.is_back(observation_))
 
 
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
 
                 trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] + \
-                                                              -not_front * player.reward_weight[1] + \
-                                                              -not_back * player.reward_weight[2]
+                                                              front * player.reward_weight[1] + \
+                                                              back * player.reward_weight[2]
 
                 trajectory['base_rew'][batch_index, frame_count] = reward
 
