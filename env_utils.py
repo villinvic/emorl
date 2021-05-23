@@ -324,7 +324,7 @@ class Tennis(EnvUtil):
 
         self['objectives'] = [
             Objective('win_rate'),
-            Objective('front', domain=(0., 1.)),
+            Objective('front', domain=(0., 0.9)),
             Objective('back', domain=(0., 1.)),
         ]
 
@@ -351,6 +351,8 @@ class Tennis(EnvUtil):
 
         self.mins = [np.inf, np.inf]
         self.maxs = [-np.inf, -np.inf]
+        self.ball_max = [-np.inf, -np.inf]
+        self.ball_min = [np.inf, np.inf]
 
     def action_to_id(self, action_id):
         return action_id
@@ -493,9 +495,9 @@ class Tennis(EnvUtil):
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
 
-                trajectory['rew'][batch_index, frame_count] = reward #* player.reward_weight[0] + \
-                                                              #front * player.reward_weight[1] + \
-                                                              #back * player.reward_weight[2]
+                trajectory['rew'][batch_index, frame_count] = 100 * reward * player.reward_weight[0] + \
+                                                              front * player.reward_weight[1] + \
+                                                              back * player.reward_weight[2]
 
                 trajectory['base_rew'][batch_index, frame_count] = reward
 
