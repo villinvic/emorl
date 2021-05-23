@@ -488,16 +488,16 @@ class Tennis(EnvUtil):
 
                 observation_ = self.preprocess(observation_)
                 # win = self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
-                front = float(self.is_front(observation_))
-                back = float(self.is_back(observation_))
+                not_front = float(not self.is_front(observation_))
+                not_back = float(not self.is_back(observation_))
 
 
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
 
                 trajectory['rew'][batch_index, frame_count] = 100 * reward * player.reward_weight[0] + \
-                                                              front * player.reward_weight[1] + \
-                                                              back * player.reward_weight[2]
+                                                              -not_front * player.reward_weight[1] + \
+                                                              -not_back * player.reward_weight[2]
 
                 trajectory['base_rew'][batch_index, frame_count] = reward
 
