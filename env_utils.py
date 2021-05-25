@@ -457,7 +457,7 @@ class Tennis(EnvUtil):
                         self.frames_since_point += 1
                         if self.frames_since_point > 600//frame_skip:
                             print('yeh u bad')
-                            r['win_rate'] -= -24
+                            r['win_rate'] = -np.inf
                             break
                 else:
                     self.frames_since_point = 0
@@ -481,15 +481,12 @@ class Tennis(EnvUtil):
 
         print(actions)
         r['avg_length'] = frame_count / float(n_games)
-        r['win_rate'] = np.clip((r['win_rate'] + 24. * n_games) / (48. * n_games), 0, np.inf)
+        r['win_rate'] = (r['win_rate'] + 24. * n_games) / (48. * n_games)
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
         r['front'] /= frame_count
         r['back'] /= frame_count
-
-        if frame_count == min_frame:
-            r['win_rate'] = -np.inf
 
         return r
 
