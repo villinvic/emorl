@@ -481,7 +481,7 @@ class Tennis(EnvUtil):
 
         print(actions)
         r['avg_length'] = frame_count / float(n_games)
-        r['win_rate'] = (r['win_rate'] + 24. * n_games) / (48. * n_games)
+        r['win_rate'] = np.clip((r['win_rate'] + 24. * n_games) / (48. * n_games), 0, np.inf)
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
