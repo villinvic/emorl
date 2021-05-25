@@ -457,7 +457,7 @@ class Tennis(EnvUtil):
                         self.frames_since_point += 1
                         if self.frames_since_point > 600//frame_skip:
                             print('yeh u bad')
-                            r['game_reward'] = -np.inf
+                            r['win_rate'] -= -24
                             break
                 else:
                     self.frames_since_point = 0
