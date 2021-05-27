@@ -142,7 +142,7 @@ class Boxing(EnvUtil):
         self['objectives'] = [
             Objective('win_rate'),
             Objective('avg_length', nature=-1, domain=(400.0, 1786.0)),
-            Objective('mean_distance', domain=(0.8, 2.))
+            Objective('mean_distance', domain=(0.8, 2.1))
         ]
 
         self.action_space_dim = 18
@@ -544,7 +544,7 @@ class Tennis(EnvUtil):
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
 
-                trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] + \
+                trajectory['rew'][batch_index, frame_count] = 100 * reward * player.reward_weight[0] + \
                 front * player.reward_weight[1] + \
                 back * player.reward_weight[2]
 
@@ -559,7 +559,7 @@ class Tennis(EnvUtil):
                     observation = np.concatenate([observation[len(observation) // 4:], observation_])
                     if self.is_returning(observation):
                         #print('return', frame_count)
-                        trajectory['rew'][batch_index, frame_count] += 0.5 * player.reward_weight[0]
+                        trajectory['rew'][batch_index, frame_count] += 5 * player.reward_weight[0]
 
         return observation
 
