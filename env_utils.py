@@ -191,7 +191,8 @@ class Boxing(EnvUtil):
              action_dim,
              frame_skip,
              min_frame,
-             min_games):
+             min_games,
+             render=False):
 
         r = {
             'game_reward'   : 0.0,
@@ -217,6 +218,10 @@ class Boxing(EnvUtil):
                 dist += dist_
                 actions[action] += 1
                 reward = 0
+                
+                if render:
+                    env.render()
+                    time.sleep(0.017)
                 for _ in range(frame_skip):
                     observation_, rr, done, info = env.step(
                         self.action_to_id(action))

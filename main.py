@@ -21,7 +21,7 @@ import time
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
-def RUN(env='Tennis-ramNoFrameskip-v4', client_mode=False, collector_ip=None, size=15, n_server=4, n_send=1,
+def RUN(env='Boxing-ramNoFrameskip-v4', client_mode=False, collector_ip=None, size=15, n_server=4, n_send=1,
         epsilon=0.0, checkpoint_dir='checkpoint/', problem ='MOP3', start_from=None, max_gen=1e10):
 
     if start_from == 'latest':
