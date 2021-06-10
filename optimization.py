@@ -52,7 +52,7 @@ def argsort_with_order(seq):
     return list(np.argsort(with_fields, order=tuple(names_l)))
 
 
-def nd_sort(scores, n_objectives, epsilon):
+def nd_sort(scores, n_objectives, epsilon=0):
     """
     builds frontiers, descending sort
     """
