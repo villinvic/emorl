@@ -549,7 +549,7 @@ class Tennis(EnvUtil):
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
 
-                trajectory['rew'][batch_index, frame_count] = reward * player.reward_weight[0] + \
+                trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] + \
                 0.02 * front * player.reward_weight[1] + \
                 0.02 * back * player.reward_weight[2]
 
@@ -564,7 +564,7 @@ class Tennis(EnvUtil):
                     observation = np.concatenate([observation[len(observation) // 4:], observation_])
                     if self.is_returning(observation):
                         #print('return', frame_count)
-                        trajectory['rew'][batch_index, frame_count] += 0.1 * player.reward_weight[0]
+                        trajectory['rew'][batch_index, frame_count] += player.reward_weight[0]
 
         return observation
 
