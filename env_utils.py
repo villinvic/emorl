@@ -141,8 +141,8 @@ class Boxing(EnvUtil):
 
         self['objectives'] = [
             Objective('win_rate'),
-            Objective('avg_length', nature=-1, domain=(400.0, 1786.0)),
-            Objective('mean_distance', domain=(0.8, 2.3))
+            Objective('avg_length', nature=-1, domain=(220.0, 1786.0)),
+            Objective('mean_distance', domain=(0.8, 2.5))
         ]
 
         self.action_space_dim = 18
