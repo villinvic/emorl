@@ -327,7 +327,7 @@ class Tennis(EnvUtil):
 
         self['objectives'] = [
             Objective('win_rate'),
-            Objective('front', domain=(0., 0.9)),
+            Objective('front', domain=(0., 1.)),
             Objective('back', domain=(0., 1.)),
         ]
 
