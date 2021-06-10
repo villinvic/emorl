@@ -537,7 +537,7 @@ class Tennis(EnvUtil):
                         self.frames_since_point += 1
                         if self.frames_since_point > 600//frame_skip:
                             print('yeh u bad')
-                            reward -= -5
+                            reward -= 5
                             force_reset = True
                 else:
                     self.frames_since_point = 0
