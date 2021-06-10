@@ -523,7 +523,6 @@ class Tennis(EnvUtil):
                 #env.render()
                 #time.sleep(0.5)
 
-
                 for _ in range(frame_skip):
                     observation_, rr, done, info = env.step(
                         self.action_to_id(action))
