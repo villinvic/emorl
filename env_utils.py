@@ -523,6 +523,7 @@ class Tennis(EnvUtil):
                 #env.render()
                 #time.sleep(0.5)
 
+
                 for _ in range(frame_skip):
                     observation_, rr, done, info = env.step(
                         self.action_to_id(action))
@@ -536,7 +537,7 @@ class Tennis(EnvUtil):
                         self.frames_since_point += 1
                         if self.frames_since_point > 600//frame_skip:
                             print('yeh u bad')
-                            reward -= -1
+                            reward -= -5
                             force_reset = True
                 else:
                     self.frames_since_point = 0
@@ -550,8 +551,8 @@ class Tennis(EnvUtil):
                 trajectory['action'][batch_index, frame_count] = action
 
                 trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] + \
-                0.02 * front * player.reward_weight[1] + \
-                0.02 * back * player.reward_weight[2]
+                0.05 * front * player.reward_weight[1] + \
+                0.05 * back * player.reward_weight[2]
 
                 trajectory['base_rew'][batch_index, frame_count] = reward
 

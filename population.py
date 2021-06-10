@@ -15,7 +15,7 @@ from behavior import *
 
 class Individual:
 
-    def __init__(self, state_shape, action_dim, goal_dim, epsilon=0.01, lr=0.001, gamma=0.99, entropy_scale=0.001,
+    def __init__(self, state_shape, action_dim, goal_dim, epsilon=0.01, lr=0.001, gamma=0.99, entropy_scale=0.0005,
                  gae_lambda=1.0, traj_length=10, batch_size=16, neg_scale=1.0, generation=1):
         self.pi = AC(state_shape, action_dim, epsilon, lr, gamma, entropy_scale, gae_lambda,
                      traj_length, batch_size, neg_scale)
@@ -41,7 +41,7 @@ class Individual:
 class LightIndividual:
     def __init__(self, goal_dim, generation=1):
 
-        self.reward_weight = log_uniform(0, 4, (goal_dim,), base=10) / 1e4
+        self.reward_weight = log_uniform(0, 4.1, (goal_dim,), base=10) / 1e4
         self.behavior_stats = {}
         self.gen = generation
         self.model_weights = None
@@ -93,5 +93,5 @@ class Population:
         self.history.update({gen: data})
 
 
-def log_uniform(low=0, high=1, size=None, base=np.e):
+def log_uniform(low=0., high=1., size=None, base=np.e):
     return np.power(base, np.random.uniform(low, high, size))
