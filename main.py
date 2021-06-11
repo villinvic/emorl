@@ -33,15 +33,16 @@ def RUN(env='Tennis-ramNoFrameskip-v4', client_mode=False, collector_ip=None, si
             _, _, filenames = next(os.walk(start_from))
         for p in ['SOP1','SOP2', 'MOP1', 'MOP2', 'MOP3']:
 
-            f = None
+            target = None
             if start_from is not None:
                 for f in filenames:
                     if p in f:
+                        target = f
                         break
 
-                if f is not None:
+                if target is not None:
                     collector = Collector(env, size, n_server, n_send, epsilon, checkpoint_dir, p,
-                                      start_from+f, client_mode, collector_ip, max_gen)
+                                      start_from+target, client_mode, collector_ip, max_gen)
                 else:
                     collector = Collector(env, size, n_server, n_send, epsilon, checkpoint_dir, p,
                                           None, client_mode, collector_ip, max_gen)
