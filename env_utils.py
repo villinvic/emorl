@@ -318,9 +318,29 @@ class Tennis(EnvUtil):
         self.scales = np.array([0.007, 0.007, 0.2, 0.007, 0.007, 0.007, 0.007, 0.2, 0.025], dtype=np.float32)
         self.state_dim = len(self.indexes) + 1
         self.y_bounds = (0.91, 1.48)
-        # 0 - 70 71 - 148
+        # 2 - 74 75 - 148
         self.side = True
         self.frames_since_point = 0
+        self.opposite_action_space = {
+                0:0,
+                1:1,
+                2:5,
+                3:3,
+                4:4,
+                5:2,
+                6:8,
+                7:9,
+                8:6,
+                9:7,
+                10:13,
+                11:11,
+                12:12,
+                13:10,
+                14:16,
+                15:17,
+                16:14,
+                17:15
+        }
 
         self.points = np.array([71, 72], dtype=np.int32)
         self.top_side_points = np.array([0, 3, 4, 7, 8, 11])
@@ -358,7 +378,10 @@ class Tennis(EnvUtil):
         self.ball_min = [np.inf, np.inf]
 
     def action_to_id(self, action_id):
-        return action_id
+        if self.side:
+            return action_id
+        else:
+            return self.opposite_action_space[action_id]
 
     def preprocess(self, obs):
 
@@ -376,14 +399,28 @@ class Tennis(EnvUtil):
         if self.side:
             return obs[6] > 1.022
         else:
-            return obs[6] < 0.014
+            return obs[6] < 0.028
 
     def is_front(self, obs):
         # print(obs[3]*100, obs[4]*100)
         if self.side:
             return obs[6] < 0.756
         else:
-            return obs[6] > 0.28
+            return obs[6] > 0.294
+            
+    def proximity_to_front(self, obs):
+        if self.side:
+            return np.abs( 0.406 - (obs[6] - 0.63) )/ 0.406
+        else:
+            return (obs[6]-0.014)/0.406
+      
+    
+    def proximity_to_back(self, obs):
+        if self.side:
+            return np.abs(0.406 - (1.036 - obs[6]))/ 0.406
+        else:
+            return np.abs(0.406 - (obs[6]-0.014))/ 0.406
+            
 
     def is_returning(self, preprocessed_obs):
         d1 = preprocessed_obs[4+self.state_dim*2] - preprocessed_obs[4+self.state_dim]
@@ -434,6 +471,7 @@ class Tennis(EnvUtil):
         n_games = 0
         actions = [0] * env.action_space.n
         dist = np.zeros((action_dim,), dtype=np.float32)
+
         while frame_count < min_frame or n_games < min_games:
             done = False
             observation = env.reset()
@@ -461,7 +499,6 @@ class Tennis(EnvUtil):
                             abs(observation[4]-observation[4+3*self.state_dim])<1e-4 :
                         self.frames_since_point += 1
                         if self.frames_since_point > 600//frame_skip:
-                            print('yeh u bad')
                             r['win_rate'] = -np.inf
                             break
                 else:
@@ -535,7 +572,6 @@ class Tennis(EnvUtil):
                             abs(observation[4]-observation[4+3*self.state_dim])<1e-4 :
                         self.frames_since_point += 1
                         if self.frames_since_point > 600//frame_skip:
-                            print('yeh u bad')
                             reward -= 5
                             force_reset = True
                 else:
@@ -543,15 +579,15 @@ class Tennis(EnvUtil):
 
                 observation_ = self.preprocess(observation_)
                 # win = self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
-                front = float(self.is_front(observation_))
-                back = float(self.is_back(observation_))
+                front = self.proximity_to_front(observation_)
+                back = self.proximity_to_back(observation_)
 
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
 
                 trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] + \
-                0.05 * front * player.reward_weight[1] + \
-                0.05 * back * player.reward_weight[2]
+                0.1 * front * player.reward_weight[1] + \
+                0.1 * back * player.reward_weight[2]
 
                 trajectory['base_rew'][batch_index, frame_count] = reward
 
