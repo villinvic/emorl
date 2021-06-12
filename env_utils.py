@@ -410,16 +410,16 @@ class Tennis(EnvUtil):
             
     def proximity_to_front(self, obs):
         if self.side:
-            return np.abs( 0.406 - (obs[6] - 0.63) )/ 0.406
+            return (np.abs( 0.406 - (obs[6] - 0.63) )/ 0.406)**2
         else:
-            return (obs[6]-0.014)/0.406
+            return ((obs[6]-0.014)/0.406)**2
       
     
     def proximity_to_back(self, obs):
         if self.side:
-            return np.abs(0.406 - (1.036 - obs[6]))/ 0.406
+            return (np.abs(0.406 - (1.036 - obs[6]))/ 0.406)**2
         else:
-            return np.abs(0.406 - (obs[6]-0.014))/ 0.406
+            return (np.abs(0.406 - (obs[6]-0.014))/ 0.406)**2
             
 
     def is_returning(self, preprocessed_obs):
