@@ -347,7 +347,7 @@ class Tennis(EnvUtil):
         self.top_side_points = np.array([0, 3, 4, 7, 8, 11])
 
         self['objectives'] = [
-            Objective('score'),
+            Objective('game_score'),
             Objective('n_shoots', nature=-1, domain=(1., float(self.max_shoot))),
             Objective('opponent_run_distance', domain=(0., 1.)),
         ]
@@ -467,7 +467,7 @@ class Tennis(EnvUtil):
             'game_reward'   : 0.0,
             'avg_length'    : 0.,
             'total_punition': 0.0,
-            'score'      : 0.0,
+            'game_score'      : 0.0,
             'entropy'       : 0.0,
             'eval_length'   : 0,
             'opponent_run_distance'         : 0.,
@@ -530,7 +530,7 @@ class Tennis(EnvUtil):
 
         print(actions)
         r['avg_length'] = frame_count / float(n_games)
-        r['score'] = (r['score'] + 24. * n_games) / (48. * n_games)
+        r['game_score'] = (r['game_score'] + 24. * n_games) / (48. * n_games)
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count

@@ -233,7 +233,7 @@ class PlotterV2:
 
 
         # Add to util reward names...
-        reward_weights.bar(x - width, data[3, selected[:self.top]], width, label='score', color='y')
+        reward_weights.bar(x - width, data[3, selected[:self.top]], width, label='game_score', color='y')
         reward_weights.bar(x, data[4, selected[:self.top]], width, label='front', color='b')
         reward_weights.bar(x + width, data[5, selected[:self.top]], width, label='back', color='r')
         reward_weights.set_ylabel('Reward weight')
