@@ -320,6 +320,7 @@ class Tennis(EnvUtil):
         self.y_bounds = (0.91, 1.48)
         # 2 - 74 75 - 148
         self.side = True
+        self.max_shoot = 10000
         self.frames_since_point = 0
         self.opposite_action_space = {
                 0:0,
@@ -346,9 +347,9 @@ class Tennis(EnvUtil):
         self.top_side_points = np.array([0, 3, 4, 7, 8, 11])
 
         self['objectives'] = [
-            Objective('win_rate'),
-            Objective('front', domain=(0., 1.)),
-            Objective('back', domain=(0., 1.)),
+            Objective('score'),
+            Objective('n_shoots', nature=-1, domain=(1., float(self.max_shoot))),
+            Objective('opponent_run_distance', domain=(0., 1.)),
         ]
 
         self.action_space_dim = 18
@@ -407,10 +408,13 @@ class Tennis(EnvUtil):
             return obs[6] < 0.756
         else:
             return obs[6] > 0.294
+
+    def distance_ran(self, obs, obs_):
+        return np.sqrt((obs[1] - obs_[1])**2 + (obs[0] - obs_[0])**2)
             
     def proximity_to_front(self, obs):
         if self.side:
-            return (np.abs( 0.406 - (obs[6] - 0.63) )/ 0.406)**2
+            return (np.abs(0.406 - (obs[6] - 0.63))/ 0.406)**2
         else:
             return ((obs[6]-0.014)/0.406)**2
       
@@ -455,17 +459,19 @@ class Tennis(EnvUtil):
              frame_skip,
              min_frame,
              min_games,
-             render=False):
+             render=False,
+             slow_factor=0.017,
+             ):
 
         r = {
             'game_reward'   : 0.0,
             'avg_length'    : 0.,
             'total_punition': 0.0,
-            'win_rate'      : 0.0,
+            'score'      : 0.0,
             'entropy'       : 0.0,
             'eval_length'   : 0,
-            'front'         : 0.,
-            'back'          : 0.,
+            'opponent_run_distance'         : 0.,
+            'n_shoots'          : 1.,
         }
         frame_count = 0.
         n_games = 0
@@ -487,7 +493,7 @@ class Tennis(EnvUtil):
                 reward = 0
                 if render:
                     env.render()
-                    time.sleep(0.017)
+                    time.sleep(slow_factor)
 
                 for _ in range(frame_skip):
                     observation_, rr, done, info = env.step(
@@ -509,13 +515,14 @@ class Tennis(EnvUtil):
                 self.swap_court(observation_)
                 observation_ = self.preprocess(observation_)
                 r['win_rate'] += reward  # self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
+                r['opponent_run_distance'] += self.distance_ran(observation[3 * len(observation) // 4:], observation_)
                 observation = np.concatenate([observation[len(observation) // 4:], observation_])
+                r['n_shoots'] += int(self.is_returning(observation))
                 r['game_reward'] += reward
+                print(r['opponent_run_distance'], r['n_shoots'])
                 if reward < 0:
                     r['total_punition'] += reward
 
-                r['front'] += int(self.is_front(observation_))
-                r['back'] += int(self.is_back(observation_))
 
                 frame_count += 1
 
@@ -523,12 +530,12 @@ class Tennis(EnvUtil):
 
         print(actions)
         r['avg_length'] = frame_count / float(n_games)
-        r['win_rate'] = (r['win_rate'] + 24. * n_games) / (48. * n_games)
+        r['score'] = (r['score'] + 24. * n_games) / (48. * n_games)
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
-        r['front'] /= frame_count
-        r['back'] /= frame_count
+        r['opponent_run_distance'] /= r['n_shoots']
+        r['n_shoots'] = np.clip(r['n_shoots'], 1., self.max_shoot)
 
         return r
 
@@ -586,8 +593,8 @@ class Tennis(EnvUtil):
                 trajectory['action'][batch_index, frame_count] = action
 
                 trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] + \
-                0.1 * front * player.reward_weight[1] + \
-                0.1 * back * player.reward_weight[2]
+                0.15 * front * player.reward_weight[1] + \
+                0.15 * back * player.reward_weight[2]
 
                 trajectory['base_rew'][batch_index, frame_count] = reward
 
@@ -600,7 +607,7 @@ class Tennis(EnvUtil):
                     observation = np.concatenate([observation[len(observation) // 4:], observation_])
                     if self.is_returning(observation):
                         #print('return', frame_count)
-                        trajectory['rew'][batch_index, frame_count] += player.reward_weight[0]
+                        trajectory['rew'][batch_index, frame_count] += 0.5 * player.reward_weight[0]
 
         return observation
 
