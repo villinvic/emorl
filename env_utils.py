@@ -504,8 +504,8 @@ class Tennis(EnvUtil):
                     if abs(observation[3]-observation[3+3*self.state_dim])<1e-4 and\
                             abs(observation[4]-observation[4+3*self.state_dim])<1e-4 :
                         self.frames_since_point += 1
-                        if self.frames_since_point > 600//frame_skip:
-                            r['win_rate'] = -np.inf
+                        if self.frames_since_point > 800//frame_skip:
+                            r['game_score'] = -np.inf
                             break
                 else:
                     self.frames_since_point = 0
@@ -514,7 +514,7 @@ class Tennis(EnvUtil):
 
                 self.swap_court(observation_)
                 observation_ = self.preprocess(observation_)
-                r['win_rate'] += reward  # self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
+                r['game_score'] += reward  # self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
                 r['opponent_run_distance'] += self.distance_ran(observation[3 * len(observation) // 4:], observation_)
                 observation = np.concatenate([observation[len(observation) // 4:], observation_])
                 r['n_shoots'] += int(self.is_returning(observation))
