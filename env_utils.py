@@ -320,7 +320,7 @@ class Tennis(EnvUtil):
         self.y_bounds = (0.91, 1.48)
         # 2 - 74 75 - 148
         self.side = True
-        self.max_shoot = 10000
+        self.max_shoot = 2000
         self.frames_since_point = 0
         self.opposite_action_space = {
                 0:0,
