@@ -349,7 +349,7 @@ class Tennis(EnvUtil):
         self['objectives'] = [
             Objective('game_score'),
             Objective('n_shoots', nature=-1, domain=(1., float(self.max_shoot))),
-            Objective('opponent_run_distance', domain=(0., 1.)),
+            Objective('opponent_run_distance', domain=(0., 15.)),
         ]
 
         self.action_space_dim = 18
@@ -426,7 +426,11 @@ class Tennis(EnvUtil):
             return (np.abs(0.406 - (obs[6]-0.014))/ 0.406)**2
             
 
-    def is_returning(self, preprocessed_obs):
+    def is_returning(self, preprocessed_obs, opp=False):
+        if opp:
+            side = not self.side
+        else:
+            side = self.side
         d1 = preprocessed_obs[4+self.state_dim*2] - preprocessed_obs[4+self.state_dim]
         d2 = preprocessed_obs[4-self.state_dim] - preprocessed_obs[4-self.state_dim*2]
         if abs(d2) > 0.7:
@@ -434,10 +438,10 @@ class Tennis(EnvUtil):
 
         d = d1 * d2
 
-        if not self.side:
+        if not side:
             d2 = -d2
 
-        return (d < 0 and d2<0)
+        return (d <= 0 and d2<0)
 
 
     def win(self, obs, last_obs, eval=False):
@@ -471,7 +475,8 @@ class Tennis(EnvUtil):
             'entropy'       : 0.0,
             'eval_length'   : 0,
             'opponent_run_distance'         : 0.,
-            'n_shoots'          : 1.,
+            'n_shoots'          : 0.,
+            'opp_shoots'    : 0,
         }
         frame_count = 0.
         n_games = 0
@@ -518,6 +523,7 @@ class Tennis(EnvUtil):
                 r['opponent_run_distance'] += self.distance_ran(observation[3 * len(observation) // 4:], observation_)
                 observation = np.concatenate([observation[len(observation) // 4:], observation_])
                 r['n_shoots'] += int(self.is_returning(observation))
+                r['opp_shoots'] += int(self.is_returning(observation, True))
                 r['game_reward'] += reward
                 print(r['opponent_run_distance'], r['n_shoots'])
                 if reward < 0:
@@ -534,7 +540,7 @@ class Tennis(EnvUtil):
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
-        r['opponent_run_distance'] /= r['n_shoots']
+        r['opponent_run_distance'] /= r['opp_shoots']
         r['n_shoots'] = np.clip(r['n_shoots'], 1., self.max_shoot)
 
         return r
