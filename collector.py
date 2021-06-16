@@ -105,7 +105,7 @@ class Collector:
         best_index = p[0]
         best_score = -np.inf
         for i in p:
-            score = self.population.individuals[i].behavior_stats[self.util['problems'][key].name]
+            score = self.population.individuals[i].behavior_stats[self.util['objectives'][key].name]
             if score > best_score:
                 best_index = i
                 best_score = score
