@@ -349,7 +349,7 @@ class Tennis(EnvUtil):
         self['objectives'] = [
             Objective('game_score'),
             Objective('n_shoots', nature=-1, domain=(1., float(self.max_shoot))),
-            Objective('opponent_run_distance', domain=(0., 15.)),
+            Objective('opponent_run_distance', domain=(0., 3.)),
         ]
 
         self.action_space_dim = 18
@@ -511,7 +511,9 @@ class Tennis(EnvUtil):
                         self.frames_since_point += 1
                         if self.frames_since_point > 800//frame_skip:
                             r['game_score'] = -np.inf
-                            break
+                            r['opponent_run_distance'] = -np.inf
+                            r['n_shoots'] = self.max_shoot
+                            return r
                 else:
                     self.frames_since_point = 0
 
