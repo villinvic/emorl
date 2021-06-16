@@ -100,12 +100,12 @@ class Collector:
             cmd = "python3 boot_server.py %d %s %s" % (i, self.env_id, self.ip)
             self.servers[i] = subprocess.Popen(cmd.split())
 
-    def tournament(self, k=1, key='win_rate'):
+    def tournament(self, k=1, key=0):
         p = np.random.choice(np.arange(self.population.size), (k,), replace=False)
         best_index = p[0]
         best_score = -np.inf
         for i in p:
-            score = self.population.individuals[i].behavior_stats[key]
+            score = self.population.individuals[i].behavior_stats[self.util['problems'][key].name]
             if score > best_score:
                 best_index = i
                 best_score = score
