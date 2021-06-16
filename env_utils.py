@@ -525,7 +525,6 @@ class Tennis(EnvUtil):
                 r['n_shoots'] += int(self.is_returning(observation))
                 r['opp_shoots'] += int(self.is_returning(observation, True))
                 r['game_reward'] += reward
-                print(r['opponent_run_distance'], r['n_shoots'])
                 if reward < 0:
                     r['total_punition'] += reward
 
