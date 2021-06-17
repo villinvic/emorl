@@ -455,7 +455,8 @@ class Tennis(EnvUtil):
             side = self.side
         d1 = preprocessed_obs[4+self.state_dim*2] - preprocessed_obs[4+self.state_dim]
         d2 = preprocessed_obs[4-self.state_dim] - preprocessed_obs[4-self.state_dim*2]
-        if abs(d2) > 0.5:
+        d2x = preprocessed_obs[3-self.state_dim] - preprocessed_obs[3-self.state_dim*2]
+        if abs(d2)+abs(d2x) > 0.3:
             return False
 
         d = d1 * d2
