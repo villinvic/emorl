@@ -348,7 +348,7 @@ class Tennis(EnvUtil):
 
         self['objectives'] = [
             Objective('game_score'),
-            Objective('aggressiveness', nature=-1, domain=(3000., float(self.max_frames))),
+            Objective('aim_quality', domain=(0., 1.)),
             Objective('opponent_run_distance', domain=(0., 1.)),
         ]
 
@@ -411,6 +411,24 @@ class Tennis(EnvUtil):
 
     def distance_ran(self, obs, obs_):
         return np.sqrt((obs[1] - obs_[1])**2 + (obs[0] - obs_[0])**2)
+
+    def aim_quality(self, full_obs):
+        ball_x = full_obs[-self.state_dim+3]
+        ball_y = full_obs[-self.state_dim+4]
+        vector = complex(ball_x - full_obs[-2*self.state_dim+3], ball_y - full_obs[-2*self.state_dim+4])
+        angle = np.angle(vector)
+
+        opp_x = full_obs[-self.state_dim]
+        opp_y = full_obs[-self.state_dim+1]
+        dY = opp_y - ball_y
+
+        deviation = np.tan(angle) * dY
+
+        quality = np.abs(ball_x + deviation - opp_x)
+
+        return quality
+
+
             
     def proximity_to_front(self, obs):
         if self.side:
@@ -476,7 +494,7 @@ class Tennis(EnvUtil):
             'eval_length'   : 0,
             'opponent_run_distance'         : 0.,
             'n_shoots'          : 0.,
-            'aggressiveness': 0.,
+            'aim_quality': 0.,
             'opp_shoots'    : 0,
         }
         frame_count = 0.
@@ -489,8 +507,7 @@ class Tennis(EnvUtil):
             done = False
             observation = env.reset()
             self.frames_since_point = 0
-            episode_r = 0
-            episode_frame = 0
+
             self.swap_court(observation)
             observation = self.preprocess(observation)
             observation = np.concatenate([observation, observation, observation, observation])
@@ -507,7 +524,6 @@ class Tennis(EnvUtil):
                     observation_, rr, done, info = env.step(
                         self.action_to_id(action))
                     reward += rr
-                    episode_r += rr
 
                 if reward == 0:
                     if abs(observation[3]-observation[3+3*self.state_dim])<1e-4 and\
@@ -530,7 +546,11 @@ class Tennis(EnvUtil):
                 r['game_score'] += reward  # self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
                 r['opponent_run_distance'] += self.distance_ran(observation[3 * len(observation) // 4:], observation_)
                 observation = np.concatenate([observation[len(observation) // 4:], observation_])
-                r['n_shoots'] += int(self.is_returning(observation))
+
+                is_returning = self.is_returning(observation)
+                if is_returning:
+                    r['n_shoots'] += 1
+                    r['aim_quality'] += self.aim_quality(observation)
                 r['opp_shoots'] += int(self.is_returning(observation, True))
                 r['game_reward'] += reward
                 if reward < 0:
@@ -538,12 +558,6 @@ class Tennis(EnvUtil):
 
 
                 frame_count += 1
-                episode_frame += 1
-                if done:
-                    if episode_r > 0:
-                        r['aggressiveness'] += np.clip(episode_frame, 0, self.max_frames*0.5)
-                    else:
-                        r['aggressiveness'] += self.max_frames * 0.5
             n_games += 1
 
         print(actions)
@@ -552,6 +566,7 @@ class Tennis(EnvUtil):
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
+        r['aim_quality'] /= r['n_shoots']
         r['opponent_run_distance'] /= r['opp_shoots'] + r['n_shoots']
 
         return r
