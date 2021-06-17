@@ -415,6 +415,8 @@ class Tennis(EnvUtil):
     def aim_quality(self, full_obs):
         ball_x = full_obs[-self.state_dim+3]
         ball_y = full_obs[-self.state_dim+4]
+        print('1', ball_x, ball_y)
+        print('2', full_obs[-2*self.state_dim+3], full_obs[-2*self.state_dim+4])
         vector = complex(ball_y - full_obs[-2*self.state_dim+4], ball_x - full_obs[-2*self.state_dim+3])
         angle = np.angle(vector)
 
@@ -454,7 +456,7 @@ class Tennis(EnvUtil):
         d1 = preprocessed_obs[4+self.state_dim*2] - preprocessed_obs[4+self.state_dim]
         d2 = preprocessed_obs[4-self.state_dim] - preprocessed_obs[4-self.state_dim*2]
         d2x = preprocessed_obs[3-self.state_dim] - preprocessed_obs[3-self.state_dim*2]
-        if abs(d2)+abs(d2x) > 0.3:
+        if abs(d2)+abs(d2x) > 0.2:
             return False
 
         d = d1 * d2
