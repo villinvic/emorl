@@ -456,7 +456,7 @@ class Tennis(EnvUtil):
         d1 = preprocessed_obs[4+self.state_dim*2] - preprocessed_obs[4+self.state_dim]
         d2 = preprocessed_obs[4-self.state_dim] - preprocessed_obs[4-self.state_dim*2]
         d2x = preprocessed_obs[3-self.state_dim] - preprocessed_obs[3-self.state_dim*2]
-        if abs(d2)+abs(d2x) > 0.2:
+        if abs(d2)+abs(d2x) > 0.1 :
             return False
 
         d = d1 * d2
