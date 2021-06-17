@@ -415,8 +415,6 @@ class Tennis(EnvUtil):
     def aim_quality(self, full_obs):
         ball_x = full_obs[-self.state_dim+3]
         ball_y = full_obs[-self.state_dim+4]
-        print('1', ball_x, ball_y)
-        print('2', full_obs[-2*self.state_dim+3], full_obs[-2*self.state_dim+4])
         vector = complex(ball_y - full_obs[-2*self.state_dim+4], ball_x - full_obs[-2*self.state_dim+3])
         angle = np.angle(vector)
 
@@ -428,7 +426,7 @@ class Tennis(EnvUtil):
 
         quality = np.abs(ball_x + deviation - opp_x)
 
-        # print(ball_y, vector, angle, opp_y, deviation, quality)
+        print(ball_y, vector, angle, opp_y, deviation, quality)
 
         return quality
 
