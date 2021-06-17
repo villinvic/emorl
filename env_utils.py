@@ -426,6 +426,8 @@ class Tennis(EnvUtil):
 
         quality = np.abs(ball_x + deviation - opp_x)
 
+        print(ball_y, angle, opp_y, deviation, quality)
+
         return quality
 
 
