@@ -555,7 +555,7 @@ class Tennis(EnvUtil):
                 is_returning = self.is_returning(observation)
                 if is_returning:
                     r['n_shoots'] += 1
-                    r['aim_quality'] += self.aim_quality(observation)
+                    r['aim_quality'] += np.clip(self.aim_quality(observation), 0, 1)
                 r['opp_shoots'] += int(self.is_returning(observation, True))
                 r['game_reward'] += reward
                 if reward < 0:
