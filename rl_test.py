@@ -11,7 +11,7 @@ def smooth(y, box_pts):
     return y_smooth
 
 class RLtest:
-    def __init__(self, alpha=0.001, gamma=0.99, traj=10, batch=16, env_id='Tennis-ramNoFrameskip-v4', plot_freq=100):
+    def __init__(self, alpha=0.001, gamma=0.993, traj=10, batch=16, env_id='Tennis-ramNoFrameskip-v4', plot_freq=100):
         self.alpha = alpha
         self.gamma = gamma
         self.traj = traj

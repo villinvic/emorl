@@ -410,7 +410,10 @@ class Tennis(EnvUtil):
             return obs[6] > 0.294
 
     def distance_ran(self, obs, obs_):
-        return np.sqrt((obs[1] - obs_[1])**2 + (obs[0] - obs_[0])**2)
+        d = np.sqrt((obs[1] - obs_[1])**2 + (obs[0] - obs_[0])**2)
+        if d > 20 * 0.007:
+            d = 0
+        return d
 
     def aim_quality(self, full_obs):
         ball_x = full_obs[-self.state_dim+3]
@@ -424,11 +427,12 @@ class Tennis(EnvUtil):
         opp_y = full_obs[-self.state_dim+1]
         dY = opp_y - ball_y
 
-        deviation = np.tan(angle) * dY
+        scale = (0.1 + np.abs(dY) * 0.9) * np.sign(dY)
+        deviation = np.tan(angle) * scale
 
-        quality = np.abs(ball_x + deviation - opp_x)
 
-        #print(ball_y, vector, angle, opp_y, deviation, quality)
+        quality = np.clip(np.abs(ball_x + deviation - opp_x), 0, 1)
+
 
         return quality
 
@@ -555,7 +559,7 @@ class Tennis(EnvUtil):
                 is_returning = self.is_returning(observation)
                 if is_returning:
                     r['n_shoots'] += 1
-                    r['aim_quality'] += np.clip(self.aim_quality(observation), 0, 1)
+                    r['aim_quality'] += self.aim_quality(observation)
                 r['opp_shoots'] += int(self.is_returning(observation, True))
                 r['game_reward'] += reward
                 if reward < 0:
@@ -623,15 +627,15 @@ class Tennis(EnvUtil):
 
                 observation_ = self.preprocess(observation_)
                 # win = self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
-                front = self.proximity_to_front(observation_)
-                back = self.proximity_to_back(observation_)
+                # front = self.proximity_to_front(observation_)
+                # back = self.proximity_to_back(observation_)
 
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
 
-                trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] + \
-                0.05 * front * player.reward_weight[1] + \
-                0.05 * back * player.reward_weight[2]
+                trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0]
+                #0.05 * front * player.reward_weight[1] + \
+                #0.05 * back * player.reward_weight[2]
 
                 trajectory['base_rew'][batch_index, frame_count] = reward
 
@@ -644,7 +648,11 @@ class Tennis(EnvUtil):
                     observation = np.concatenate([observation[len(observation) // 4:], observation_])
                     if self.is_returning(observation):
                         #print('return', frame_count)
-                        trajectory['rew'][batch_index, frame_count] += player.reward_weight[0]
+                        trajectory['rew'][batch_index, frame_count] +=\
+                            self.aim_quality(observation) * player.reward_weight[1] \
+                            + self.distance_ran(observation[-2*self.state_dim:-self.state_dim],
+                                                observation[-self.state_dim:]) * player.reward_weight[2]
+
 
         return observation
 
