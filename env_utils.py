@@ -434,8 +434,6 @@ class Tennis(EnvUtil):
 
         quality = np.clip(np.abs(ball_x + deviation - opp_x), 0, 1)
 
-        print(quality)
-
         return quality
 
 
