@@ -431,9 +431,10 @@ class Tennis(EnvUtil):
         deviation = np.tan(angle) * scale
 
 
+
         quality = np.clip(np.abs(ball_x + deviation - opp_x), 0, 1)
 
-
+        print(quality)
 
         return quality
 
@@ -458,9 +459,9 @@ class Tennis(EnvUtil):
             side = not self.side
         else:
             side = self.side
-        d1 = preprocessed_obs[4+self.state_dim*2] - preprocessed_obs[4+self.state_dim]
-        d2 = preprocessed_obs[4-self.state_dim] - preprocessed_obs[4-self.state_dim*2]
-        d2x = preprocessed_obs[3-self.state_dim] - preprocessed_obs[3-self.state_dim*2]
+        d1 = preprocessed_obs[4+self.state_dim] - preprocessed_obs[4]
+        d2 = preprocessed_obs[4-self.state_dim*2] - preprocessed_obs[4-self.state_dim*3]
+        d2x = preprocessed_obs[3-self.state_dim*2] - preprocessed_obs[3-self.state_dim*3]
         if abs(d2)+abs(d2x) > 0.1 :
             return False
 
@@ -542,6 +543,7 @@ class Tennis(EnvUtil):
                         if self.frames_since_point > 800//frame_skip:
                             r['game_score'] = -np.inf
                             r['opponent_run_distance'] = -np.inf
+                            r['aim_quality'] = -np.inf
                             r['aggressiveness'] = np.inf
                             return r
                 else:
