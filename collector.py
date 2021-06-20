@@ -159,6 +159,7 @@ class Collector:
         i = 0
         sparse_select = None
         sparse_frontier = None
+        self.population.pareto_frontier_size = len(frontiers[0])
         while len(selected) < self.population.size:
             if len(selected) + len(frontiers[i]) <= self.population.size:
                 selected.extend(frontiers[i])

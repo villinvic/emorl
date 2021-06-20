@@ -29,6 +29,7 @@ class Individual:
 
         self.gen = generation
 
+
     def get_weights(self):
         return {'pi': self.pi.policy.get_weights(),
                 'r': self.reward_weight}
@@ -68,6 +69,8 @@ class Population:
             self.individuals[i].behavior_stats.update({'entropy': np.inf })
 
             self.individuals[i].model_weights = w['pi']
+
+            self.pareto_frontier_size = size
 
         self.history = {}
 
