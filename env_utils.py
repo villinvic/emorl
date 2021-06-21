@@ -415,6 +415,9 @@ class Tennis(EnvUtil):
             d = 0
         return d
 
+    def self_dy(self, full_obs):
+        return np.abs(full_obs[6] - full_obs[-self.state_dim+6])
+
     def aim_quality(self, full_obs):
         ball_x = full_obs[-self.state_dim+3]
         ball_y = full_obs[-self.state_dim+4]
@@ -576,7 +579,7 @@ class Tennis(EnvUtil):
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
-        r['aim_quality'] /= r['n_shoots']
+        r['aim_quality'] /= np.clip(r['n_shoots'], 48, np.inf)
         r['opponent_run_distance'] /= frame_count
 
         return r
@@ -651,8 +654,7 @@ class Tennis(EnvUtil):
                         #print('return', frame_count)
                         trajectory['rew'][batch_index, frame_count] +=\
                             self.aim_quality(observation) * player.reward_weight[1] \
-                            + self.distance_ran(observation[-2*self.state_dim:-self.state_dim],
-                                                observation[-self.state_dim:]) * player.reward_weight[2]
+                            + self.self_dy(observation) * player.reward_weight[2]
 
 
         return observation
