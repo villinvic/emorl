@@ -632,14 +632,13 @@ class Tennis(EnvUtil):
                 observation_ = self.preprocess(observation_)
                 # win = self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
                 # front = self.proximity_to_front(observation_)
-                # back = self.proximity_to_back(observation_)
+                back = self.proximity_to_back(observation_)
 
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
 
-                trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0]
-                #0.05 * front * player.reward_weight[1] + \
-                #0.05 * back * player.reward_weight[2]
+                trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] \
+                                                              +0.05 * back * player.reward_weight[2]
 
                 trajectory['base_rew'][batch_index, frame_count] = reward
 
@@ -653,8 +652,8 @@ class Tennis(EnvUtil):
                     if self.is_returning(observation):
                         #print('return', frame_count)
                         trajectory['rew'][batch_index, frame_count] +=\
-                            self.aim_quality(observation) * player.reward_weight[1] \
-                            + self.self_dy(observation) * player.reward_weight[2]
+                            self.aim_quality(observation) * player.reward_weight[1]
+                   #         + self.self_dy(observation) * player.reward_weight[2]
 
 
         return observation
