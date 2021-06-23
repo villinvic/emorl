@@ -631,7 +631,7 @@ class Tennis(EnvUtil):
 
                 observation_ = self.preprocess(observation_)
                 # win = self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
-                front = np.ckip(self.proximity_to_front(observation_) - 0.25, 0, 1)
+                front = np.clip(self.proximity_to_front(observation_) - 0.25, 0, 1)
                 # back = self.proximity_to_back(observation_)
 
                 trajectory['state'][batch_index, frame_count] = observation
