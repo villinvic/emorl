@@ -308,6 +308,8 @@ class EvolutionServer:
 
                 self.player.pi.train(self.trajectory['state'], self.trajectory['action'][:, :-1], self.trajectory['rew'][:, :-1], -1)
                 training_step += 1
+
+                """
                 rew += np.sum(self.trajectory['base_rew'][:, :-1])
                 # y.append(rew)
                 if not training_step % self.round_length:
@@ -320,7 +322,7 @@ class EvolutionServer:
                             print('[%d] early stop DRL at %d' % (self.ID, training_step))
                             break
                     rew = 0
-
+                """
 
             # y.append(np.nan)
             # plt.plot(np.arange(len(y)), smooth(y, 100))
