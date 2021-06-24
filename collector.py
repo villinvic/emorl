@@ -30,14 +30,14 @@ class EXIT(Exception) : pass
 
 class Collector:
     def __init__(self, env_id, size, n_server, n_send, epsilon, checkpoint_dir='checkpoint/', problem='MOP3',
-                 start_from=None, client_mode=False, ip=None, max_gen=1e10):
+                 start_from=None, client_mode=False, ip=None, max_gen=1e10, gpu=False):
+
         self.client_mode = client_mode
-
-
         self.problem = problem
         self.n_server = n_server
         self.servers = [None] * n_server
         self.max_gen = max_gen
+        self.gpu = gpu
         if ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
@@ -98,7 +98,9 @@ class Collector:
     def start_servers(self):
         for i in range(self.n_server):
             cmd = "python3 boot_server.py %d %s %s" % (i, self.env_id, self.ip)
-            self.servers[i] = subprocess.Popen(cmd.split())
+            gpu = str(i) if (self.gpu and i<4) else "-1"
+            self.servers[i] = subprocess.Popen(cmd.split(),
+                                               env={"CUDA_VISIBLE_DEVICES": gpu})
 
     def tournament(self, k=1, key=0):
         p = np.random.choice(np.arange(self.population.size), (k,), replace=False)

@@ -18,11 +18,11 @@ import os
 import time
 # =============
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
-
 def RUN(env='Tennis-ramNoFrameskip-v4', client_mode=False, collector_ip=None, size=15, n_server=4, n_send=1,
-        epsilon=0.0, checkpoint_dir='checkpoint/', problem ='MOP3', start_from=None, max_gen=1e10):
+        epsilon=0.0, checkpoint_dir='checkpoint/', problem ='MOP3', start_from=None, max_gen=1e10, gpu=False):
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 
     if start_from == 'latest':
         pass
@@ -42,19 +42,19 @@ def RUN(env='Tennis-ramNoFrameskip-v4', client_mode=False, collector_ip=None, si
 
                 if target is not None:
                     collector = Collector(env, size, n_server, n_send, epsilon, checkpoint_dir, p,
-                                      start_from+target, client_mode, collector_ip, max_gen)
+                                      start_from+target, client_mode, collector_ip, max_gen, gpu)
                 else:
                     collector = Collector(env, size, n_server, n_send, epsilon, checkpoint_dir, p,
-                                          None, client_mode, collector_ip, max_gen)
+                                          None, client_mode, collector_ip, max_gen, gpu)
             else:
                 collector = Collector(env, size, n_server, n_send, epsilon, checkpoint_dir, p,
-                                      None, client_mode, collector_ip, max_gen)
+                                      None, client_mode, collector_ip, max_gen, gpu)
             collector.main_loop()
             time.sleep(1)
 
     else:
         collector = Collector(env, size, n_server, n_send, epsilon, checkpoint_dir, problem,
-                              start_from, client_mode, collector_ip, max_gen)
+                              start_from, client_mode, collector_ip, max_gen, gpu)
         collector.main_loop()
 
 
