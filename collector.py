@@ -102,7 +102,6 @@ class Collector:
             cmd = "python3 boot_server.py %d %s %s" % (i, self.env_id, self.ip)
             gpu = str(i) if (self.gpu and i<4) else "-1"
             environ['CUDA_VISIBLE_DEVICES'] = gpu
-            print(environ['CUDA_VISIBLE_DEVICES'])
             self.servers[i] = subprocess.Popen(cmd.split(),
                                                env=environ)
 
