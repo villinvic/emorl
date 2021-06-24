@@ -9,7 +9,6 @@ Observations : None
 """
 
 # == Imports ==
-from population import Individual
 from env_utils import *
 
 import zmq
@@ -18,7 +17,7 @@ import signal
 import sys
 from copy import deepcopy
 import gym
-from time import time
+from time import time, sleep
 import socket
 import os
 # =============
@@ -29,7 +28,7 @@ class EvolutionServer:
     def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=10, batch_size=16, max_train=12,
                  early_stop=100, round_length=300, min_eval=100, min_games=2, subprocess=True, mutation_rate=0.5):
 
-
+        sleep(30)
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
