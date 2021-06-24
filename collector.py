@@ -23,6 +23,7 @@ import signal
 from optimization import nd_sort, cd_select
 import socket
 import time
+import os
 from datetime import datetime
 # =============
 
@@ -96,11 +97,13 @@ class Collector:
         print('OK.')
 
     def start_servers(self):
+        environ = os.environ
         for i in range(self.n_server):
             cmd = "python3 boot_server.py %d %s %s" % (i, self.env_id, self.ip)
             gpu = str(i) if (self.gpu and i<4) else "-1"
+            environ['CUDA_VISIBLE_DEVICES'] = gpu
             self.servers[i] = subprocess.Popen(cmd.split(),
-                                               env={"CUDA_VISIBLE_DEVICES": gpu})
+                                               env=environ)
 
     def tournament(self, k=1, key=0):
         p = np.random.choice(np.arange(self.population.size), (k,), replace=False)

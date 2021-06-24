@@ -20,7 +20,6 @@ from copy import deepcopy
 import gym
 from time import time
 import socket
-import os
 # =============
 
 
