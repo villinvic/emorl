@@ -20,6 +20,7 @@ from copy import deepcopy
 import gym
 from time import time
 import socket
+import os
 # =============
 
 
@@ -27,6 +28,7 @@ class EvolutionServer:
 
     def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=10, batch_size=16, max_train=12,
                  early_stop=100, round_length=300, min_eval=100, min_games=2, subprocess=True, mutation_rate=0.5):
+
 
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
@@ -41,6 +43,7 @@ class EvolutionServer:
         self.mutation_rate = mutation_rate
         self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim, traj_length=traj_length, batch_size=batch_size)
         self.frame_skip = 5
+        self.gpu = -int(int(os.environ['CUDA_VISIBLE_DEVICES']) >= 0)
 
         if subprocess:
             context = zmq.Context()
@@ -307,7 +310,7 @@ class EvolutionServer:
                                      self.action_dim,
                                      obs)
 
-                self.player.pi.train(self.trajectory['state'], self.trajectory['action'][:, :-1], self.trajectory['rew'][:, :-1], -1)
+                self.player.pi.train(self.trajectory['state'], self.trajectory['action'][:, :-1], self.trajectory['rew'][:, :-1], self.gpu)
                 training_step += 1
 
                 """
