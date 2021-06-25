@@ -20,8 +20,6 @@ import gym
 from time import time, sleep
 import socket
 import os
-
-import tensorflow as tf
 # =============
 
 
@@ -40,6 +38,7 @@ class EvolutionServer:
         self.gpu = -int(int(os.environ['CUDA_VISIBLE_DEVICES']) < 0)
         print(self.gpu)
         sleep(50)
+        import tensorflow as tf
         physical_devices = tf.config.list_physical_devices('GPU')
         if len(physical_devices) > 0 :
             print('setting memory limit')
