@@ -430,10 +430,8 @@ class Tennis(EnvUtil):
         opp_y = full_obs[-self.state_dim+1]
         dY = opp_y - ball_y
 
-        scale = (0.2 + np.abs(dY) * 0.4) * np.sign(dY)
+        scale = (0. + 1 * np.abs(dY)) * np.sign(dY)
         deviation = np.tan(angle) * scale
-
-
 
         quality = np.clip(np.abs(ball_x + deviation - opp_x), 0, 1) + 0.2
 
@@ -653,7 +651,7 @@ class Tennis(EnvUtil):
                         #print('return', frame_count)
                         trajectory['rew'][batch_index, frame_count] +=\
                             self.aim_quality(observation) * player.reward_weight[1]
-                   #         + self.self_dy(observation) * player.reward_weight[2]
+                            #+ self.self_dy(observation) * player.reward_weight[2]
 
 
         return observation
