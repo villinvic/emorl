@@ -197,6 +197,9 @@ class Collector:
             self.mating_pipe.unbind("tcp://%s:5655" % self.ip)
             self.evolved_pipe.unbind("tcp://%s:5656" % self.ip)
 
+        for i in range(self.n_server):
+            print(i, self.servers[i].wait())
+
         try:
             if not self.client_mode:
                 ckpt_name = '--'.join([str(self.population.size), str(self.generation),
