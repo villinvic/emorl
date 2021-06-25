@@ -9,6 +9,7 @@ Observations : None
 """
 
 # == Imports ==
+import tensorflow as tf
 from env_utils import *
 
 import zmq
@@ -28,13 +29,21 @@ class EvolutionServer:
     def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, traj_length=10, batch_size=16, max_train=12,
                  early_stop=100, round_length=300, min_eval=100, min_games=2, subprocess=True, mutation_rate=0.5):
 
-        sleep(30)
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
         else:
             self.ip = collector_ip
 
         self.ID = ID
+        
+        self.gpu = -int(int(os.environ['CUDA_VISIBLE_DEVICES']) < 0)
+        print(self.gpu)
+        physical_devices = tf.config.list_physical_devices('GPU')
+        if len(physical_devices) > 0 :
+            print('setting memory limit')
+            tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
+            tf.config.experimental.set_virtual_device_configuration(physical_devices[0], [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=4096)])
+
         self.env = gym.make(env_id)
         self.util = name2class[env_id]
         self.action_dim = self.util.action_space_dim
@@ -42,7 +51,9 @@ class EvolutionServer:
         self.mutation_rate = mutation_rate
         self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim, traj_length=traj_length, batch_size=batch_size)
         self.frame_skip = 5
-        self.gpu = -int(int(os.environ['CUDA_VISIBLE_DEVICES']) >= 0)
+        
+        
+        
 
         if subprocess:
             context = zmq.Context()
