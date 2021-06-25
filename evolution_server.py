@@ -39,6 +39,7 @@ class EvolutionServer:
         
         self.gpu = -int(int(os.environ['CUDA_VISIBLE_DEVICES']) < 0)
         print(self.gpu)
+        sleep(50)
         physical_devices = tf.config.list_physical_devices('GPU')
         if len(physical_devices) > 0 :
             print('setting memory limit')
@@ -316,7 +317,6 @@ class EvolutionServer:
             training_step = 0
             no_improvement_counter = 0
             # self.player.pi.reset_optim()
-            sleep(50)
             while time() - start_time < self.max_train * 60:
                 obs = self.util.play(self.player,
                                      self.env,
