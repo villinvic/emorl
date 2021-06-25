@@ -316,6 +316,7 @@ class EvolutionServer:
             training_step = 0
             no_improvement_counter = 0
             # self.player.pi.reset_optim()
+            sleep(50)
             while time() - start_time < self.max_train * 60:
                 obs = self.util.play(self.player,
                                      self.env,
