@@ -9,6 +9,7 @@ Observations : None
 """
 
 # == Imports ==
+import tensorflow as tf
 from env_utils import *
 
 import zmq
@@ -37,8 +38,6 @@ class EvolutionServer:
         
         self.gpu = -int(int(os.environ['CUDA_VISIBLE_DEVICES']) < 0)
         print(self.gpu)
-        sleep(50)
-        import tensorflow as tf
         physical_devices = tf.config.list_physical_devices('GPU')
         if len(physical_devices) > 0 :
             print('setting memory limit')
@@ -81,16 +80,11 @@ class EvolutionServer:
         if subprocess:
             signal.signal(signal.SIGINT, self.exit)
 
-        signal.signal(signal.SIGSEGV, self.segfault_handler)
-
     def exit(self, signal_num, frame):
         self.mating_pipe.close()
         self.evolved_pipe.close()
         print('[%d] closed' % self.ID)
         sys.exit(0)
-
-    def segfault_handler(self, frame, sig):
-        print('Segmentation fault', self.ID)
 
     def recv_mating(self):
         return self.mating_pipe.recv_pyobj()
