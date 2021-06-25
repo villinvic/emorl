@@ -9,7 +9,6 @@ Observations : None
 """
 
 # == Imports ==
-import tensorflow as tf
 from env_utils import *
 
 import zmq
@@ -21,6 +20,8 @@ import gym
 from time import time, sleep
 import socket
 import os
+
+import tensorflow as tf
 # =============
 
 
@@ -80,11 +81,16 @@ class EvolutionServer:
         if subprocess:
             signal.signal(signal.SIGINT, self.exit)
 
+        signal.signal(signal.SIGSEGV, self.segfault_handler)
+
     def exit(self, signal_num, frame):
         self.mating_pipe.close()
         self.evolved_pipe.close()
         print('[%d] closed' % self.ID)
         sys.exit(0)
+
+    def segfault_handler(self, frame, sig):
+        print('Segmentation fault', self.ID)
 
     def recv_mating(self):
         return self.mating_pipe.recv_pyobj()
