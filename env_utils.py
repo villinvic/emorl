@@ -348,7 +348,7 @@ class Tennis(EnvUtil):
 
         self['objectives'] = [
             Objective('game_score'),
-            Objective('aim_quality', domain=(0., 0.4)),
+            Objective('aim_quality', domain=(0., 0.5)),
             Objective('opponent_run_distance', domain=(0.005, 0.05)),
         ]
 
@@ -430,7 +430,7 @@ class Tennis(EnvUtil):
         opp_y = full_obs[-self.state_dim+1]
         dY = opp_y - ball_y
 
-        scale = (0. + 1 * np.abs(dY)) * np.sign(dY)
+        scale = (0.1 + 0.6 * np.abs(dY)) * np.sign(dY)
         deviation = np.tan(angle) * scale
 
         quality = np.clip(np.abs(ball_x + deviation - opp_x), 0, 1) + 0.2
@@ -636,7 +636,7 @@ class Tennis(EnvUtil):
                 trajectory['action'][batch_index, frame_count] = action
 
                 trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] \
-                                                              -0.1 * front * player.reward_weight[2]
+                                                              -0.5 * front * player.reward_weight[2]
 
                 trajectory['base_rew'][batch_index, frame_count] = reward
 
