@@ -219,7 +219,7 @@ class PlotterV2:
                     color = 'r' if index in selected else 'k'
 
             opti.plot(data[1, index], data[2, index], marker='o', color=color)
-        opti.set_ylabel('Mean distance ran by the opponent')
+        opti.set_ylabel('Mobility')
         opti.set_xlabel('Aim quality')
         opti.set_title('Selected individuals')
         opti.set_xlim([-0.05,1.05])
