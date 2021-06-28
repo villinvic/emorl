@@ -42,7 +42,6 @@ class EvolutionServer:
         #    print('setting memory limit')
         #    tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
         #    tf.config.experimental.set_virtual_device_configuration(physical_devices[0], [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=4096)])
-        sleep(50)
 
         self.env = gym.make(env_id)
         self.util = name2class[env_id]
