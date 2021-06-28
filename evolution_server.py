@@ -39,10 +39,10 @@ class EvolutionServer:
         self.gpu = -int(int(os.environ['CUDA_VISIBLE_DEVICES']) < 0)
         print(self.gpu)
         physical_devices = tf.config.list_physical_devices('GPU')
-        if len(physical_devices) > 0 :
-            print('setting memory limit')
-            tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
-            tf.config.experimental.set_virtual_device_configuration(physical_devices[0], [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=4096)])
+        #if len(physical_devices) > 0 :
+        #    print('setting memory limit')
+        #    tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
+        #    tf.config.experimental.set_virtual_device_configuration(physical_devices[0], [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=4096)])
 
         self.env = gym.make(env_id)
         self.util = name2class[env_id]
