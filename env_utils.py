@@ -349,7 +349,7 @@ class Tennis(EnvUtil):
         self['objectives'] = [
             Objective('game_score'),
             Objective('aim_quality', domain=(0., 0.5)),
-            Objective('mobility', domain=(0.001, 0.05)),
+            Objective('mobility', domain=(0.005, 0.06)),
         ]
 
         self.action_space_dim = 18
