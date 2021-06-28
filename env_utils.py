@@ -578,7 +578,7 @@ class Tennis(EnvUtil):
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
-        r['aim_quality'] /= np.clip(r['n_shoots'], 48, np.inf)
+        r['aim_quality'] /= np.clip(r['n_shoots'], 100, np.inf)
         r['mobility'] /= frame_count
 
         return r
