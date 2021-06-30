@@ -16,6 +16,7 @@ from collector import Collector
 from env_utils import *
 import sys
 import gym
+import getpass
 
 import time
 # =============
@@ -24,12 +25,16 @@ import time
 
 
 def RUN(env='Tennis-ramNoFrameskip-v4', client_mode=False, collector_ip=None, size=15, n_server=4, n_send=1,
-        epsilon=0.0, checkpoint_dir='checkpoint/', problem ='MOP3', start_from=None, max_gen=1e10, gpu=False):
+        epsilon=0.0, checkpoint_dir='checkpoint/', problem ='MOP3', start_from=None, max_gen=1e10, gpu=False,
+        tunnel=False):
 
     
 
     if start_from == 'latest':
         pass
+    psw = ""
+    if tunnel:
+        psw = getpass.getpass()
 
     if not client_mode and problem =='ALL':
 
@@ -46,19 +51,19 @@ def RUN(env='Tennis-ramNoFrameskip-v4', client_mode=False, collector_ip=None, si
 
                 if target is not None:
                     collector = Collector(env, size, n_server, n_send, epsilon, checkpoint_dir, p,
-                                      start_from+target, client_mode, collector_ip, max_gen, gpu)
+                                      start_from+target, client_mode, collector_ip, max_gen, gpu, psw)
                 else:
                     collector = Collector(env, size, n_server, n_send, epsilon, checkpoint_dir, p,
-                                          None, client_mode, collector_ip, max_gen, gpu)
+                                          None, client_mode, collector_ip, max_gen, gpu, psw)
             else:
                 collector = Collector(env, size, n_server, n_send, epsilon, checkpoint_dir, p,
-                                      None, client_mode, collector_ip, max_gen, gpu)
+                                      None, client_mode, collector_ip, max_gen, gpu, psw)
             collector.main_loop()
             time.sleep(1)
 
     else:
         collector = Collector(env, size, n_server, n_send, epsilon, checkpoint_dir, problem,
-                              start_from, client_mode, collector_ip, max_gen, gpu)
+                              start_from, client_mode, collector_ip, max_gen, gpu, psw)
         collector.main_loop()
 
 
