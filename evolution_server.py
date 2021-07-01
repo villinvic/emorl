@@ -59,6 +59,7 @@ class EvolutionServer:
             context = zmq.Context()
             self.mating_pipe = context.socket(zmq.PULL)
             self.evolved_pipe = context.socket(zmq.PUSH)
+            print(psw)
             if psw != "":
                 print('tunnel')
                 print(psw, self.ip)
