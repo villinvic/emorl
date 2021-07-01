@@ -60,8 +60,8 @@ class EvolutionServer:
             self.mating_pipe = context.socket(zmq.PULL)
             self.evolved_pipe = context.socket(zmq.PUSH)
             if psw != "":
-                ssh.tunnel_connection(self.mating_pipe, "tcp://%s:5655" % self.ip, "villinvic@%s", password=psw)
-                ssh.tunnel_connection(self.evolved_pipe, "tcp://%s:5656" % self.ip, "villinvic@%s", password=psw)
+                ssh.tunnel_connection(self.mating_pipe, "tcp://%s:5655" % self.ip, "villinvic@%s" % self.ip, password=psw)
+                ssh.tunnel_connection(self.evolved_pipe, "tcp://%s:5656" % self.ip, "villinvic@%s" % self.ip, password=psw)
             else:
                 self.mating_pipe.connect("tcp://%s:5655" % self.ip)
                 self.evolved_pipe.connect("tcp://%s:5656" % self.ip)
