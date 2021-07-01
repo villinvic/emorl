@@ -31,7 +31,7 @@ class EXIT(Exception) : pass
 
 class Collector:
     def __init__(self, env_id, size, n_server, n_send, epsilon, checkpoint_dir='checkpoint/', problem='MOP3',
-                 start_from=None, client_mode=False, ip=None, max_gen=1e10, gpu=False, tunnel=False):
+                 start_from=None, client_mode=False, ip=None, max_gen=1e10, gpu=False, tunnel='""'):
 
         self.client_mode = client_mode
         self.problem = problem
