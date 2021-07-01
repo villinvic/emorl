@@ -36,7 +36,6 @@ def RUN(env='Tennis-ramNoFrameskip-v4', client_mode=False, collector_ip=None, si
     psw = '""'
     if tunnel:
         psw = getpass.getpass()
-        print(psw)
 
     if not client_mode and problem =='ALL':
 
