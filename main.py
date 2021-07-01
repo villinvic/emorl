@@ -32,7 +32,7 @@ def RUN(env='Tennis-ramNoFrameskip-v4', client_mode=False, collector_ip=None, si
 
     if start_from == 'latest':
         pass
-    psw = ""
+    psw = '""'
     if tunnel:
         psw = getpass.getpass()
 
