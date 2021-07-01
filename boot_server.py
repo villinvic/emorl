@@ -15,8 +15,8 @@ import fire
 # =============
 
 
-def RUN(ID, env_id, ip):
-    server = EvolutionServer(int(ID), env_id, ip)
+def RUN(ID, env_id, ip, psw):
+    server = EvolutionServer(int(ID), env_id, ip, psw)
     server.run()
     sys.exit(0)
 
