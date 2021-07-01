@@ -349,7 +349,7 @@ class Tennis(EnvUtil):
         self['objectives'] = [
             Objective('game_score'),
             Objective('aim_quality', domain=(0., 0.5)),
-            Objective('mobility', domain=(0.005, 0.06)),
+            Objective('mobility', domain=(0., 0.06)),
         ]
 
         self.action_space_dim = 18
@@ -578,7 +578,7 @@ class Tennis(EnvUtil):
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
-        r['aim_quality'] /= np.clip(r['n_shoots'], 100, np.inf)
+        r['aim_quality'] /= np.clip(r['n_shoots'], 120, np.inf)
         r['mobility'] /= frame_count
 
         return r
