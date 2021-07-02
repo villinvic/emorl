@@ -59,11 +59,17 @@ class EvolutionServer:
             context = zmq.Context()
             self.mating_pipe = context.socket(zmq.PULL)
             self.evolved_pipe = context.socket(zmq.PUSH)
-            if psw != "":
+            self.tunneling = (psw != "")
+            self.psw = psw
+
+            self.mating_pipe(zmq.RCVTIMEO, 1000 * 60 * 2)
+            self.mating_pipe(zmq.LINGER, 0)
+            if self.tunneling:
                 print('tunnel')
                 ssh.tunnel_connection(self.mating_pipe, "tcp://%s:5655" % self.ip, "villinvic@%s" % self.ip, password=psw)
                 ssh.tunnel_connection(self.evolved_pipe, "tcp://%s:5656" % self.ip, "villinvic@%s" % self.ip, password=psw)
             else:
+
                 self.mating_pipe.connect("tcp://%s:5655" % self.ip)
                 self.evolved_pipe.connect("tcp://%s:5656" % self.ip)
 
@@ -92,7 +98,19 @@ class EvolutionServer:
         sys.exit(0)
 
     def recv_mating(self):
-        return self.mating_pipe.recv_pyobj()
+        try :
+            return self.mating_pipe.recv_pyobj()
+        except zmq.ZMQError:
+            print('[%d] Receive timeout... reconnecting...')
+
+            if self.tunneling:
+                self.mating_pipe.close()
+                ssh.tunnel_connection(self.mating_pipe, "tcp://%s:5655" % self.ip, "villinvic@%s" % self.ip,
+                                      password=self.psw)
+
+            print('[%d] Reattempting...')
+
+            return None
 
     def send_evolved(self, q):
         self.evolved_pipe.send_pyobj(q)
@@ -363,11 +381,11 @@ class EvolutionServer:
             print(individual['eval'])
 
     def run(self):
+        trained = None
         print('[%d] started' % self.ID)
-
+        print('[%d] receiving mating' % self.ID)
+        mating = self.recv_mating()
         while True:
-            print('[%d] receiving mating' % self.ID)
-            mating = self.recv_mating()
             print('[%d] received all' % self.ID)
             qs = self.crossover(mating)
             print('[%d] crossover ok' % self.ID)
@@ -377,8 +395,14 @@ class EvolutionServer:
             print('[%d] DRL ok' % self.ID)
             self.evaluate(trained)
             print('[%d] eval ok' % self.ID)
-            self.send_evolved(trained)
-            print('[%d] sent evolved' % self.ID)
+
+
+            mating = None
+            while mating is None:
+                self.send_evolved(trained)
+                print('[%d] sent evolved' % self.ID)
+                print('[%d] receiving mating' % self.ID)
+                mating = self.recv_mating()
 
 def smooth(y, box_pts):
     box = np.ones(box_pts)/box_pts
