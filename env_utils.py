@@ -379,10 +379,13 @@ class Tennis(EnvUtil):
         self.ball_min = [np.inf, np.inf]
 
     def action_to_id(self, action_id):
+        return action_id
+        """
         if self.side:
             return action_id
         else:
             return self.opposite_action_space[action_id]
+        """
 
     def preprocess(self, obs):
 
@@ -430,7 +433,7 @@ class Tennis(EnvUtil):
         opp_y = full_obs[-self.state_dim+1]
         dY = opp_y - ball_y
 
-        scale = (0.5 + 0.1 * np.abs(dY)) * np.sign(dY)
+        scale = (0.5 + 0.2 * np.abs(dY)) * np.sign(dY)
         deviation = np.tan(angle) * scale
 
         quality = np.clip(np.abs(ball_x + deviation - opp_x), 0, 1) + 0.2
@@ -543,7 +546,6 @@ class Tennis(EnvUtil):
                             r['game_score'] = -np.inf
                             r['mobility'] = -np.inf
                             r['aim_quality'] = -np.inf
-                            r['aggressiveness'] = np.inf
                             return r
                 else:
                     self.frames_since_point = 0
@@ -631,7 +633,7 @@ class Tennis(EnvUtil):
                 observation_ = self.preprocess(observation_)
                 # win = self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
                 # front = np.clip(self.proximity_to_front(observation_) - 0.25, 0, 1)
-                # back = self.proximity_to_back(observation_)
+                back = self.proximity_to_back(observation_)
 
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
@@ -652,7 +654,7 @@ class Tennis(EnvUtil):
                         #print('return', frame_count)
                         trajectory['rew'][batch_index, frame_count] +=\
                             self.aim_quality(observation) * player.reward_weight[1] \
-                            + self.self_dy(observation) * player.reward_weight[2]
+                            + (1 + back) * self.self_dy(observation) * player.reward_weight[2]
 
 
         return observation
