@@ -107,6 +107,9 @@ class EvolutionServer:
                 self.mating_pipe.close()
                 ssh.tunnel_connection(self.mating_pipe, "tcp://%s:5655" % self.ip, "villinvic@%s" % self.ip,
                                       password=self.psw)
+                self.evolved_pipe.close()
+                ssh.tunnel_connection(self.evolved_pipe, "tcp://%s:5656" % self.ip, "villinvic@%s" % self.ip,
+                                      password=self.psw)
 
             print('[%d] Reattempting...')
 
