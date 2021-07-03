@@ -111,7 +111,7 @@ class EvolutionServer:
                 self.mating_pipe = c.socket(zmq.PULL)
                 self.evolved_pipe = c.socket(zmq.PUSH)
 
-                self.mating_pipe.setsockopt(zmq.RCVTIMEO, 1000 * 60 * 2)
+                self.mating_pipe.setsockopt(zmq.RCVTIMEO, 1000 * 60 * 4)
                 self.mating_pipe.setsockopt(zmq.LINGER, 0)
                 ssh.tunnel_connection(self.mating_pipe, "tcp://%s:5655" % self.ip, "villinvic@%s" % self.ip,
                                       password=self.psw)

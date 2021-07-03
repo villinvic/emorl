@@ -348,7 +348,7 @@ class Tennis(EnvUtil):
 
         self['objectives'] = [
             Objective('game_score'),
-            Objective('aim_quality', domain=(0., 0.5)),
+            Objective('aim_quality', domain=(0., 0.55)),
             Objective('mobility', domain=(0., 0.06)),
         ]
 
