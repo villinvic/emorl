@@ -26,7 +26,7 @@ import os
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=10, batch_size=16, max_train=10,
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=20, batch_size=16, max_train=12,
                  early_stop=100, round_length=300, min_eval=100, min_games=2, subprocess=True, mutation_rate=0.5):
 
         if collector_ip is None:
@@ -215,8 +215,8 @@ class EvolutionServer:
                         gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
                         q['pi'][i] += gaussian_noise
 
-                gaussian_noised = np.random.normal(loc=q['r'], scale=q['r']*0.4, size=q['r'].shape)
-                q['r'] = np.clip(gaussian_noised, 1e-4, np.inf)
+                # noise with +- 25%
+                q['r'] *= (1 + np.clip(np.random.normal(0, 0.14, size=q['r'].shape), -0.25, 0.25))
 
     """
     def eval(self, player: Individual, min_frame):

@@ -653,8 +653,8 @@ class Tennis(EnvUtil):
                     if self.is_returning(observation):
                         #print('return', frame_count)
                         trajectory['rew'][batch_index, frame_count] +=\
-                            self.aim_quality(observation) * player.reward_weight[1] * 10 \
-                            + (1 + back) * self.self_dy(observation) * player.reward_weight[2] * 10
+                            self.aim_quality(observation) * player.reward_weight[1] \
+                            + (1 + back) * self.self_dy(observation) * player.reward_weight[2]
 
 
         return observation
