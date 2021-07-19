@@ -27,8 +27,8 @@ import os
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=60, batch_size=4, max_train=12,
-                 early_stop=100, round_length=300, min_eval=100, min_games=2, subprocess=True, mutation_chance=1., mutation_rate=0.05):
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=20, batch_size=32, max_train=12,
+                 early_stop=100, round_length=300, min_eval=100, min_games=2, subprocess=True, mutation_chance=0.5, mutation_rate=0.05):
 
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())

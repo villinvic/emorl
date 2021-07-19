@@ -53,7 +53,7 @@ class RLtest:
         c = 1
         obs = None
         try:
-            self.player.reward_weight[:] = 0.2, 0.8, 0.
+            self.player.reward_weight[:] = 0.2, 0.6, 0.
 
             while True:
                 obs = self.util.play(self.player,
@@ -92,7 +92,7 @@ class RLtest:
         print('done')
 
 
-def TEST(alpha=0.001, gamma=0.99, traj=60, batch=4):
+def TEST(alpha=0.001, gamma=0.99, traj=20, batch=32):
     tester = RLtest(alpha, gamma, traj, batch)
     tester.train_loop()
 
