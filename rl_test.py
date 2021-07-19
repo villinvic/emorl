@@ -22,7 +22,7 @@ class RLtest:
         self.util = name2class[env_id]
         self.state_shape = (self.util.state_dim * 4,)
         self.action_dim = self.util.action_space_dim
-        self.player = Individual(self.state_shape, self.action_dim, 3, 0.01, alpha, gamma, 0.0005, 1, traj, batch, 1)
+        self.player = Individual(self.state_shape, self.action_dim, 3, 0.01, alpha, gamma, 0.001, 1, traj, batch, 1)
 
         self.trajectory = {
             'state': np.zeros((batch, traj) + self.state_shape, dtype=np.float32),
@@ -92,7 +92,7 @@ class RLtest:
         print('done')
 
 
-def TEST(alpha=0.001, gamma=0.99, traj=30, batch=8):
+def TEST(alpha=0.001, gamma=0.99, traj=30, batch=16):
     tester = RLtest(alpha, gamma, traj, batch)
     tester.train_loop()
 
