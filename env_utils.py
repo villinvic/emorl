@@ -192,7 +192,8 @@ class Boxing(EnvUtil):
              frame_skip,
              min_frame,
              min_games,
-             render=False):
+             render=False,
+             slow_factor=0.017):
 
         r = {
             'game_reward'   : 0.0,
@@ -221,7 +222,7 @@ class Boxing(EnvUtil):
                 
                 if render:
                     env.render()
-                    time.sleep(0.017)
+                    time.sleep(slow_factor)
                 for _ in range(frame_skip):
                     observation_, rr, done, info = env.step(
                         self.action_to_id(action))
@@ -372,6 +373,23 @@ class Tennis(EnvUtil):
         self['problems']['MOP3']['behavior_functions'] = self.build_objective_func(self['objectives'][0],
                                                                                    self['objectives'][1],
                                                                                    self['objectives'][2])
+
+        self['problems'].update({
+                'SOP3': {
+                    'is_single'         : True,
+                    'complexity'        : 1,
+                    'behavior_functions': self.build_objective_func(self['objectives'][0],
+                                                                                   self['objectives'][1],
+                                                                                   sum_=True),
+                }})
+
+        self['problems'].update({
+                'MOP4': {
+                    'is_single'         : True,
+                    'complexity'        : 1,
+                    'behavior_functions': self.build_objective_func(self['objectives'][1], self['objectives'][2]),
+                }})
+
 
         self.mins = [np.inf, np.inf]
         self.maxs = [-np.inf, -np.inf]
@@ -620,12 +638,13 @@ class Tennis(EnvUtil):
 
                 # print(observation_)
                 self.swap_court(observation_)
+                punish = 0
                 if reward == 0:
                     if abs(observation[3]-observation[3+3*self.state_dim])<1e-4 and\
                             abs(observation[4]-observation[4+3*self.state_dim])<1e-4 :
                         self.frames_since_point += 1
-                        if self.frames_since_point > 600//frame_skip:
-                            reward -= 5
+                        if self.frames_since_point > 400//frame_skip:
+                            punish -= 5
                             force_reset = True
                 else:
                     self.frames_since_point = 0
@@ -637,8 +656,7 @@ class Tennis(EnvUtil):
 
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
-
-                trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0]
+                trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] + punish
                                                               #-0.5 * front * player.reward_weight[2]
 
                 trajectory['base_rew'][batch_index, frame_count] = reward

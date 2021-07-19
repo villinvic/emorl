@@ -10,6 +10,7 @@ Observations : None
 
 # == Imports ==
 from env_utils import *
+from population import log_uniform
 
 import zmq
 from zmq import ssh
@@ -26,8 +27,8 @@ import os
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=20, batch_size=16, max_train=12,
-                 early_stop=100, round_length=300, min_eval=100, min_games=2, subprocess=True, mutation_rate=0.5):
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=30, batch_size=8, max_train=12,
+                 early_stop=100, round_length=300, min_eval=100, min_games=2, subprocess=True, mutation_chance=1., mutation_rate=0.05):
 
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
@@ -49,6 +50,7 @@ class EvolutionServer:
         self.action_dim = self.util.action_space_dim
         self.state_shape = (self.util.state_dim*4,)
         self.mutation_rate = mutation_rate
+        self.mutation_chance = mutation_chance
         self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim, traj_length=traj_length, batch_size=batch_size)
         self.frame_skip = 5
         
@@ -209,14 +211,27 @@ class EvolutionServer:
 
     def mutate(self, offspring, intensity=0.005):
         for q in offspring:
-            if np.random.random() < self.mutation_rate:
+            if np.random.random() < self.mutation_chance:
+                for j in range(len(q['pi'])):
+                    if isinstance(q['pi'][j], np.ndarray) and len(q['pi'][j] > 0):
+                        if isinstance(q['pi'][j][0], np.ndarray) and len(q['pi'][j] > 0):
+                            for k in range(len(q['pi'][j])):
+                                gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][j][k].shape)
+                                q['pi'][j][k] += gaussian_noise * np.float32(np.random.random(gaussian_noise.shape)<self.mutation_rate)
+                        else:
+                            gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][j].shape)
+                            q['pi'][j] += gaussian_noise * np.float32(np.random.random(gaussian_noise.shape)<self.mutation_rate)
+
+                """
                 for i in range(len(q['pi'])):
                     if isinstance(q['pi'][i], np.ndarray) and len(q['pi'][i] > 0):
                         gaussian_noise = np.random.normal(loc=0, scale=intensity, size=q['pi'][i].shape)
                         q['pi'][i] += gaussian_noise
-
-                # noise with +- 25%
-                q['r'] *= (1 + np.clip(np.random.normal(0, 0.14, size=q['r'].shape), -0.25, 0.25))
+                """
+                # Chance to resample
+                for r in range(len(q['r'])):
+                    if np.random.random() < self.mutation_rate:
+                        q['r'][r] = (log_uniform(0, 4.1, (q.shape,), base=10) / 1e4)
 
     """
     def eval(self, player: Individual, min_frame):

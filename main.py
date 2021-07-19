@@ -37,11 +37,12 @@ def RUN(env='Tennis-ramNoFrameskip-v4', client_mode=False, collector_ip=None, si
     if tunnel:
         psw = getpass.getpass()
 
-    if not client_mode and problem =='ALL':
+    if not client_mode and problem =='ALL' or problem== 'SPEC':
 
         if start_from is not None:
             _, _, filenames = next(os.walk(start_from))
-        for p in ['SOP1','SOP2', 'MOP1', 'MOP2', 'MOP3']:
+        array = ['SOP1','SOP2', 'MOP1', 'MOP2', 'MOP3'] if problem == 'ALL' else ['SOP3', 'MOP4']
+        for p in array:
 
             target = None
             if start_from is not None:

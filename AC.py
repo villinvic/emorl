@@ -269,8 +269,8 @@ class AC(tf.keras.Model):
 
         v_loss, mean_entropy, min_entropy, max_entropy, min_logp, max_logp, p_loss \
             = self._train(states, actions, rewards, gpu)
-            
-        # tf.print(v_loss, p_loss, mean_entropy, min_entropy, max_entropy)
+        #tf.print(rewards)
+        tf.print(v_loss, p_loss, mean_entropy, min_entropy, max_entropy)
 
         """
         tf.summary.scalar(name=self.name + "/v_loss", data=v_loss)

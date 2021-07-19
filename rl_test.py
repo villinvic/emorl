@@ -22,7 +22,7 @@ class RLtest:
         self.util = name2class[env_id]
         self.state_shape = (self.util.state_dim * 4,)
         self.action_dim = self.util.action_space_dim
-        self.player = Individual(self.state_shape, self.action_dim, 3, 0.01, alpha, gamma, 0.001, 1, traj, batch, 1)
+        self.player = Individual(self.state_shape, self.action_dim, 3, 0.01, alpha, gamma, 0.0005, 1, traj, batch, 1)
 
         self.trajectory = {
             'state': np.zeros((batch, traj) + self.state_shape, dtype=np.float32),
@@ -53,12 +53,14 @@ class RLtest:
         c = 1
         obs = None
         try:
+            self.player.reward_weight[:] = 0.1, 0.2, 0.
+
             while True:
                 obs = self.util.play(self.player,
                                      self.env,
                                      self.batch,
                                      self.traj,
-                                     3,
+                                     5,
                                      self.trajectory,
                                      self.action_dim,
                                      observation=obs)
@@ -77,7 +79,7 @@ class RLtest:
                 r = self.util.eval(self.player,
                                      self.env,
                                      self.action_dim,
-                                     3,
+                                     5,
                                      min_frame=10000,
                                      min_games=1,
                                      render=True)
@@ -90,7 +92,7 @@ class RLtest:
         print('done')
 
 
-def TEST(alpha=0.001, gamma=0.99, traj=10, batch=16):
+def TEST(alpha=0.001, gamma=0.99, traj=30, batch=8):
     tester = RLtest(alpha, gamma, traj, batch)
     tester.train_loop()
 
