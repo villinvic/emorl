@@ -231,7 +231,7 @@ class EvolutionServer:
                 # Chance to resample
                 for r in range(len(q['r'])):
                     if np.random.random() < self.mutation_rate:
-                        q['r'][r] *= (1 + np.clip(np.random.normal(0,0.15, -0.5, 0.5)))# (log_uniform(0, 4., size=(1,), base=10) / 1e4)
+                        q['r'][r] *= (1 + np.clip(np.random.normal(0,0.15), -0.5, 0.5))# (log_uniform(0, 4., size=(1,), base=10) / 1e4)
 
     """
     def eval(self, player: Individual, min_frame):
