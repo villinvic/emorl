@@ -643,8 +643,8 @@ class Tennis(EnvUtil):
                     if abs(observation[3]-observation[3+3*self.state_dim])<1e-4 and\
                             abs(observation[4]-observation[4+3*self.state_dim])<1e-4 :
                         self.frames_since_point += 1
-                        if self.frames_since_point > 400//frame_skip:
-                            punish -= 5
+                        if self.frames_since_point > 300//frame_skip:
+                            punish -= 10
                             force_reset = True
                 else:
                     self.frames_since_point = 0

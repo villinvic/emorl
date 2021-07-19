@@ -95,8 +95,8 @@ class CategoricalActor(tf.keras.Model):
         self.state_ndim = len(state_shape)
         self.epsilon = tf.Variable(epsilon, name="Actor_epsilon", trainable=False, dtype=tf.float32)
 
-        self.l1 = Dense(64, activation='relu', dtype='float32', name="critic_L1")
-        self.l2 = Dense(64, activation='relu', dtype='float32', name="L2")
+        self.l1 = Dense(128, activation='relu', dtype='float32', name="critic_L1")
+        self.l2 = Dense(128, activation='relu', dtype='float32', name="L2")
         self.prob = Dense(action_dim, dtype='float32', name="prob", activation="softmax")
 
         self.v = Dense(1, dtype='float32', name="value", activation="linear")
@@ -222,8 +222,8 @@ class V(tf.keras.Model):
         super().__init__(name=name)
         self
 
-        self.l1 = Dense(64, activation='elu', dtype='float32', name="v_L1")
-        self.l2 = Dense(64, activation='elu', dtype='float32', name="L2")
+        self.l1 = Dense(128, activation='elu', dtype='float32', name="v_L1")
+        self.l2 = Dense(128, activation='elu', dtype='float32', name="L2")
         self.v = Dense(1, activation='linear', dtype='float32', name="v")
 
     def call(self, states):
@@ -270,7 +270,7 @@ class AC(tf.keras.Model):
         v_loss, mean_entropy, min_entropy, max_entropy, min_logp, max_logp, p_loss \
             = self._train(states, actions, rewards, gpu)
         #tf.print(rewards)
-        #tf.print(v_loss, p_loss, mean_entropy, min_entropy, max_entropy)
+        tf.print(v_loss, p_loss, mean_entropy, min_entropy, max_entropy)
 
         """
         tf.summary.scalar(name=self.name + "/v_loss", data=v_loss)
