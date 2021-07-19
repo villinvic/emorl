@@ -88,9 +88,7 @@ class RLtest:
         except KeyboardInterrupt:
             pass
 
-
         print('done')
-
 
 def TEST(alpha=0.001, gamma=0.99, traj=20, batch=32):
     tester = RLtest(alpha, gamma, traj, batch)

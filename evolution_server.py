@@ -27,8 +27,8 @@ import os
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=20, batch_size=32, max_train=12,
-                 early_stop=100, round_length=300, min_eval=100, min_games=2, subprocess=True, mutation_chance=0.5, mutation_rate=0.05):
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=20, batch_size=16, max_train=12,
+                 early_stop=100, round_length=300, min_eval=100, min_games=2, subprocess=True, mutation_chance=1.0, mutation_rate=0.05):
 
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
@@ -231,7 +231,7 @@ class EvolutionServer:
                 # Chance to resample
                 for r in range(len(q['r'])):
                     if np.random.random() < self.mutation_rate:
-                        q['r'][r] = (log_uniform(0, 4., size=(1,), base=10) / 1e4)
+                        q['r'][r] *= (1 + np.clip(np.random.normal(0,0.15, -0.5, 0.5)))# (log_uniform(0, 4., size=(1,), base=10) / 1e4)
 
     """
     def eval(self, player: Individual, min_frame):
