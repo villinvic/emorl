@@ -15,7 +15,7 @@ from behavior import *
 
 class Individual:
 
-    def __init__(self, state_shape, action_dim, goal_dim, epsilon=0.01, lr=0.001, gamma=0.99, entropy_scale=0.001,
+    def __init__(self, state_shape, action_dim, goal_dim, epsilon=0.01, lr=0.001, gamma=0.99, entropy_scale=0.0006,
                  gae_lambda=1.0, traj_length=10, batch_size=16, neg_scale=1.0, generation=1):
         self.pi = AC(state_shape, action_dim, epsilon, lr, gamma, entropy_scale, gae_lambda,
                      traj_length, batch_size, neg_scale)

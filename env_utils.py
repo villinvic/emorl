@@ -387,7 +387,7 @@ class Tennis(EnvUtil):
                 'MOP4': {
                     'is_single'         : True,
                     'complexity'        : 1,
-                    'behavior_functions': self.build_objective_func(self['objectives'][1], self['objectives'][2]),
+                    'behavior_functions': self.build_objective_func(self['objectives'][0], self['objectives'][1]),
                 }})
 
 
@@ -656,7 +656,7 @@ class Tennis(EnvUtil):
 
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
-                trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] + punish
+                trajectory['rew'][batch_index, frame_count] = reward * player.reward_weight[0] + punish
                                                               #-0.5 * front * player.reward_weight[2]
 
                 trajectory['base_rew'][batch_index, frame_count] = reward
@@ -678,12 +678,60 @@ class Tennis(EnvUtil):
         return observation
 
 
+class Breakout(EnvUtil):
+    def __init__(self, name):
+        self.name = name
+        super(Breakout, self).__init__(name)
+
+        self['ram_locations'] = dict(ball_x=99,
+                     ball_y=101,
+                     player_x=72,
+                     blocks_hit_count=77,
+                     block_bit_map=np.arange(30),
+                     score=84)
+
+        self.indexes = np.array([value for value in self['ram_locations'].values()], dtype=np.int32)
+        self.reversed_indexes = np.array([26, 24, 70, 16, 15, 27, 25, 69, 17], dtype=np.int32)
+        self.centers = np.array([0, 0, 0, 0, 0, 0], dtype=np.float32)
+        self.scales = np.array([0.005, 0.005, 0.005, 0.005, 0.005, 0.005], dtype=np.float32)
+        self.state_dim = len(self.indexes) + 29
+
+        self['objectives'] = [
+            Objective('game_score', domain=(0., 255.)),
+            Objective('mobility', domain=(0., 1.)),
+            Objective('number_of_hits', nature=-1, domain=(0., 30.*5*5)),
+        ]
+
+        self.action_space_dim = 18
+        self.goal_dim = len(self['objectives'])
+
+        self['problems']['SOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][0])
+        self['problems']['SOP2']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
+                                                                                   self['objectives'][2],
+                                                                                   sum_=True)
+
+        self['problems']['MOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
+                                                                                   self['objectives'][2])
+
+        self['problems']['MOP2']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
+                                                                                   self['objectives'][2],
+                                                                                   prioritized=self['objectives'][
+                                                                                       0])
+        self['problems']['MOP2']['complexity'] = 2
+
+        self['problems']['MOP3']['behavior_functions'] = self.build_objective_func(self['objectives'][0],
+                                                                                   self['objectives'][1],
+                                                                                   self['objectives'][2])
+
+
+
 name2class = {'Pong-ramNoFrameskip-v4'    : Pong('Pong-ramNoFrameskip-v4'),
               'Pong-ram-v0'               : Pong('Pong-ram-v0'),
               'Pong-ramDeterministic-v4'  : Pong('Pong-ramDeterministic-v4'),
               'Boxing-ramNoFrameskip-v4'  : Boxing('Boxing-ramNoFrameskip-v4'),
               'Boxing-ramDeterministic-v4': Boxing('Boxing-ramDeterministic-v4'),
               'Tennis-ramNoFrameskip-v4'  : Tennis('Tennis-ramNoFrameskip-v4'),
+              'Breakout-ramNoFrameeskip-v4': Breakout('Breakout-ramNoFrameskip-v4'),
               }
 
 # TODO
