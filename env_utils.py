@@ -687,14 +687,15 @@ class Breakout(EnvUtil):
                      ball_y=101,
                      player_x=72,
                      blocks_hit_count=77,
-                     block_bit_map=np.arange(30),
                      score=84)
+        self['ram_locations'].update({
+            'block_bit_map' + str(i): i for i in range(30)
+        })
 
         self.indexes = np.array([value for value in self['ram_locations'].values()], dtype=np.int32)
-        self.reversed_indexes = np.array([26, 24, 70, 16, 15, 27, 25, 69, 17], dtype=np.int32)
-        self.centers = np.array([0, 0, 0, 0, 0, 0], dtype=np.float32)
-        self.scales = np.array([0.005, 0.005, 0.005, 0.005, 0.005, 0.005], dtype=np.float32)
-        self.state_dim = len(self.indexes) + 29
+        self.centers = np.array([0 for _ in range(len(self.indexes))], dtype=np.float32)
+        self.scales = np.array([0.005 for _ in range(len(self.indexes))], dtype=np.float32)
+        self.state_dim = len(self.indexes)
 
         self['objectives'] = [
             Objective('game_score', domain=(0., 255.)),
