@@ -691,18 +691,22 @@ class Breakout(EnvUtil):
             'block_bit_map' + str(i): i for i in range(30)
         })
 
+        # px 55 191
+        # bx 55 200
+
         self.indexes = np.array([value for value in self['ram_locations'].values()], dtype=np.int32)
         self.centers = np.array([0 for _ in range(len(self.indexes))], dtype=np.float32)
-        self.scales = np.array([0.005 for _ in range(len(self.indexes))], dtype=np.float32)
+        self.scales = np.array([0.004 for _ in range(len(self.indexes))], dtype=np.float32)
+        self.scales[:3] *= 1
         self.state_dim = len(self.indexes)
         self.block_hit_combo = 0
-        self.hit_cooldown = 0
-        self.hit_max_cooldown = 5
+        self.hit_cooldown = 6
+        self.hit_max_cooldown = 18
 
         self['objectives'] = [
             Objective('game_score', domain=(0., 30.)),
-            Objective('efficiency', nature=1, domain=(0., 1.)),
-            Objective('hit_freq', nature=1, domain=(0., 0.1)),
+            Objective('efficiency', nature=1, domain=(0., 0.1)),
+            Objective('hit_freq', nature=1, domain=(0., 0.05)),
         ]
 
         self.action_space_dim = 4
@@ -733,10 +737,10 @@ class Breakout(EnvUtil):
         #       and  0.2 > full_obs[1-3*self.state_dim]-full_obs[1-self.state_dim] > 1e-8 \
         #          and 0.2 > full_obs[1+self.state_dim]-full_obs[1] > 1e-8
         is_hit = (self.hit_cooldown == 0) \
-                 and full_obs[1-self.state_dim] > 165 * 0.005 \
+                 and full_obs[1-self.state_dim] > 165 * 0.004 \
                  and 0.2 > full_obs[1-2*self.state_dim]-full_obs[1-self.state_dim] > 1e-8
         if is_hit:
-            #print('is_hit !', full_obs[1-2*self.state_dim]/0.005)
+            #print('is_hit !', full_obs[1-2*self.state_dim]/0.004)
             self.hit_cooldown = self.hit_max_cooldown
         elif self.hit_cooldown > 0:
             self.hit_cooldown -= 1
@@ -744,7 +748,10 @@ class Breakout(EnvUtil):
         return is_hit
 
     def d_lives(self, full_obs):
-        return int((full_obs[5-2*self.state_dim]-full_obs[5-self.state_dim])>1e-6)*5
+        return int((full_obs[5-2*self.state_dim]-full_obs[5-self.state_dim])>1e-6)*1.2
+
+    def on_sides(self, full_obs):
+        return full_obs[2 - self.state_dim]/ (0.004) < 57 or full_obs[2 - self.state_dim]/ (0.004) > 190
 
     def combo_bonus(self, reward):
         if reward > 0:
@@ -761,7 +768,7 @@ class Breakout(EnvUtil):
              min_frame,
              min_games,
              render=False,
-             slow_factor=0.08,
+             slow_factor=0.05,
              ):
 
         r = {
@@ -785,7 +792,7 @@ class Breakout(EnvUtil):
             self.frames_since_point = 0
 
             observation = self.preprocess(observation)
-            observation = np.concatenate([observation, observation, observation, observation])
+            observation = np.concatenate([observation, observation])
             while not done or frame_count < min_frame:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
                 dist += dist_
@@ -795,18 +802,17 @@ class Breakout(EnvUtil):
                     env.render()
                     time.sleep(slow_factor)
 
-                if observation[1] == 0.:
+                if (observation[1] != 0 or observation[5] > 4.5 * 0.004) and observation[1-self.state_dim] == 0:
                     env.step(1)
                 for _ in range(frame_skip):
                     observation_, rr, done, info = env.step(action)
                     reward += rr
 
                 #print(observation_)
-
                 observation_ = self.preprocess(observation_)
                 r['game_score'] += reward
 
-                observation = np.concatenate([observation[len(observation) // 4:], observation_])
+                observation = np.concatenate([observation[len(observation) // 2:], observation_])
 
                 r['hit_freq'] += int(self.is_hit(observation))
                 r['game_reward'] += reward
@@ -843,7 +849,7 @@ class Breakout(EnvUtil):
         if observation is None:
             observation = env.reset()
             observation = self.preprocess(observation)
-            observation = np.concatenate([observation, observation, observation, observation])
+            observation = np.concatenate([observation, observation])
             self.block_hit_combo = 0
 
         for batch_index in range(batch_size):
@@ -854,7 +860,7 @@ class Breakout(EnvUtil):
 
                 #env.render()
                 #time.sleep(0.5)
-                if observation[1] == 0.:
+                if (observation[1] != 0 or observation[5] > 4.5 * 0.004) and observation[1-self.state_dim] == 0:
                     env.step(1)
                 for _ in range(frame_skip):
                     observation_, rr, done, info = env.step(action)
@@ -874,17 +880,19 @@ class Breakout(EnvUtil):
                     force_reset = False
                     self.block_hit_combo = 0
                     observation = self.preprocess(env.reset())
-                    observation = np.concatenate([observation, observation, observation, observation])
+                    observation = np.concatenate([observation, observation])
                 else:
-                    observation = np.concatenate([observation[len(observation) // 4:], observation_])
+                    observation = np.concatenate([observation[len(observation) // 2:], observation_])
                     is_hit = self.is_hit(observation)
                     if is_hit:
                         self.block_hit_combo = 0
                     trajectory['rew'][batch_index, frame_count] = (reward-self.d_lives(observation))* player.reward_weight[0] \
                                                               + self.combo_bonus(reward) * player.reward_weight[1] \
-                                                                   + np.float32(is_hit) * player.reward_weight[2]
+                                                                   + np.float32(is_hit) * player.reward_weight[2] \
+                                                                -np.float32(self.on_sides(observation))*0.01
 
 
+        print(actions)
         return observation
 
 

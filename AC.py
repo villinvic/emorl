@@ -245,7 +245,7 @@ class AC(tf.keras.Model):
         self.neg_scale = neg_scale
         self.gae_lambda = tf.Variable(gae_lambda, dtype=tf.float32, trainable=False)
         self.policy = CategoricalActor(state_shape, action_dim, epsilon_greedy)
-        self.optim = tf.keras.optimizers.RMSprop(learning_rate=lr, epsilon=1e-5, rho=0.99) #Adam(learning_rate=lr, epsilon=1e-8, beta_1=0.9, beta_2=0.999)
+        self.optim = tf.keras.optimizers.Adam(learning_rate=lr, beta_1=0.9, beta_2=0.98, epsilon=1e-8, clipvalue=3.3e-3) # tf.keras.optimizers.RMSprop(learning_rate=lr, epsilon=1e-5, rho=0.99)
         self.step = tf.Variable(0, dtype=tf.int32)
         self.traj_length = tf.Variable(traj_length - 1, dtype=tf.int32, trainable=False)
         if split:
@@ -269,7 +269,7 @@ class AC(tf.keras.Model):
 
         v_loss, mean_entropy, min_entropy, max_entropy, min_logp, max_logp, p_loss \
             = self._train(states, actions, rewards, gpu)
-        tf.print(v_loss, p_loss, mean_entropy, min_entropy, max_entropy)
+        tf.print(v_loss, p_loss, mean_entropy, min_entropy, max_entropy, tf.reduce_mean(rewards))
 
         """
         tf.summary.scalar(name=self.name + "/v_loss", data=v_loss)
