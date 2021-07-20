@@ -90,7 +90,7 @@ class RLtest:
 
         print('done')
 
-def TEST(alpha=0.0005, gamma=0.99, traj=80, batch=8):
+def TEST(alpha=0.0005, gamma=0.99, traj=80, batch=1):
     tester = RLtest(alpha, gamma, traj, batch)
     tester.train_loop()
 

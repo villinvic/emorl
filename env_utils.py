@@ -670,7 +670,7 @@ class Tennis(EnvUtil):
                 else:
                     observation = np.concatenate([observation[len(observation) // 4:], observation_])
                     trajectory['rew'][batch_index, frame_count] +=\
-                        self.aim_quality(observation) * np.foat32(self.is_returning(observation)) * player.reward_weight[1] \
+                        self.aim_quality(observation) * np.float32(self.is_returning(observation)) * player.reward_weight[1] \
                         + (1 + back) * self.self_dy(observation) * player.reward_weight[2]
 
         return observation
