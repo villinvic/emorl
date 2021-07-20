@@ -11,7 +11,7 @@ def smooth(y, box_pts):
     return y_smooth
 
 class RLtest:
-    def __init__(self, alpha=0.001, gamma=0.993, traj=10, batch=16, env_id='Tennis-ramNoFrameskip-v4', plot_freq=100):
+    def __init__(self, alpha=0.001, gamma=0.993, traj=10, batch=16, env_id='Breakout-ramNoFrameskip-v4', plot_freq=100):
         self.alpha = alpha
         self.gamma = gamma
         self.traj = traj
@@ -53,7 +53,7 @@ class RLtest:
         c = 1
         obs = None
         try:
-            self.player.reward_weight[:] = 0.2, 0.6, 0.
+            self.player.reward_weight[:] = 0.5, 0.5, 0.1
 
             while True:
                 obs = self.util.play(self.player,
@@ -79,8 +79,8 @@ class RLtest:
                 r = self.util.eval(self.player,
                                      self.env,
                                      self.action_dim,
-                                     5,
-                                     min_frame=10000,
+                                     3,
+                                     min_frame=1,
                                      min_games=1,
                                      render=True)
                 print(r)
@@ -90,7 +90,7 @@ class RLtest:
 
         print('done')
 
-def TEST(alpha=0.001, gamma=0.99, traj=20, batch=32):
+def TEST(alpha=0.0005, gamma=0.99, traj=80, batch=8):
     tester = RLtest(alpha, gamma, traj, batch)
     tester.train_loop()
 

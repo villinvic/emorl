@@ -273,6 +273,7 @@ class Boxing(EnvUtil):
                 actions[action] += 1
                 reward = 0
                 for _ in range(frame_skip):
+
                     observation_, rr, done, info = env.step(
                         self.action_to_id(action))
                     reward += rr
@@ -668,12 +669,9 @@ class Tennis(EnvUtil):
                     observation = np.concatenate([observation, observation, observation, observation])
                 else:
                     observation = np.concatenate([observation[len(observation) // 4:], observation_])
-                    if self.is_returning(observation):
-                        #print('return', frame_count)
-                        trajectory['rew'][batch_index, frame_count] +=\
-                            self.aim_quality(observation) * player.reward_weight[1] \
-                            + (1 + back) * self.self_dy(observation) * player.reward_weight[2]
-
+                    trajectory['rew'][batch_index, frame_count] +=\
+                        self.aim_quality(observation) * np.foat32(self.is_returning(observation)) * player.reward_weight[1] \
+                        + (1 + back) * self.self_dy(observation) * player.reward_weight[2]
 
         return observation
 
@@ -687,7 +685,8 @@ class Breakout(EnvUtil):
                      ball_y=101,
                      player_x=72,
                      blocks_hit_count=77,
-                     score=84)
+                     score=84,
+                     lives=57)
         self['ram_locations'].update({
             'block_bit_map' + str(i): i for i in range(30)
         })
@@ -696,14 +695,17 @@ class Breakout(EnvUtil):
         self.centers = np.array([0 for _ in range(len(self.indexes))], dtype=np.float32)
         self.scales = np.array([0.005 for _ in range(len(self.indexes))], dtype=np.float32)
         self.state_dim = len(self.indexes)
+        self.block_hit_combo = 0
+        self.hit_cooldown = 0
+        self.hit_max_cooldown = 5
 
         self['objectives'] = [
-            Objective('game_score', domain=(0., 255.)),
-            Objective('mobility', domain=(0., 1.)),
-            Objective('number_of_hits', nature=-1, domain=(0., 30.*5*5)),
+            Objective('game_score', domain=(0., 30.)),
+            Objective('efficiency', nature=1, domain=(0., 1.)),
+            Objective('hit_freq', nature=1, domain=(0., 0.1)),
         ]
 
-        self.action_space_dim = 18
+        self.action_space_dim = 4
         self.goal_dim = len(self['objectives'])
 
         self['problems']['SOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][0])
@@ -723,6 +725,167 @@ class Breakout(EnvUtil):
         self['problems']['MOP3']['behavior_functions'] = self.build_objective_func(self['objectives'][0],
                                                                                    self['objectives'][1],
                                                                                    self['objectives'][2])
+    def preprocess(self, obs):
+        return (obs[self.indexes] - self.centers) * self.scales
+
+    def is_hit(self, full_obs):
+        #is_hit =  full_obs[1-2*self.state_dim] > 170 * 0.005 \
+        #       and  0.2 > full_obs[1-3*self.state_dim]-full_obs[1-self.state_dim] > 1e-8 \
+        #          and 0.2 > full_obs[1+self.state_dim]-full_obs[1] > 1e-8
+        is_hit = (self.hit_cooldown == 0) \
+                 and full_obs[1-self.state_dim] > 165 * 0.005 \
+                 and 0.2 > full_obs[1-2*self.state_dim]-full_obs[1-self.state_dim] > 1e-8
+        if is_hit:
+            #print('is_hit !', full_obs[1-2*self.state_dim]/0.005)
+            self.hit_cooldown = self.hit_max_cooldown
+        elif self.hit_cooldown > 0:
+            self.hit_cooldown -= 1
+
+        return is_hit
+
+    def d_lives(self, full_obs):
+        return int((full_obs[5-2*self.state_dim]-full_obs[5-self.state_dim])>1e-6)*5
+
+    def combo_bonus(self, reward):
+        if reward > 0:
+            bonus = np.clip(self.block_hit_combo, 0, 10)
+            self.block_hit_combo += 1
+            #print(self.block_hit_combo)
+            return bonus
+        return 0
+
+    def eval(self, player: Individual,
+             env,
+             action_dim,
+             frame_skip,
+             min_frame,
+             min_games,
+             render=False,
+             slow_factor=0.08,
+             ):
+
+        r = {
+            'game_reward'   : 0.0,
+            'avg_length'    : 0.,
+            'total_punition': 0.0,
+            'game_score'      : 0.0,
+            'entropy'       : 0.0,
+            'eval_length'   : 0,
+            'efficiency'         : 0.,
+            'hit_freq'          : 0.,
+        }
+        frame_count = 0.
+        n_games = 0
+        actions = [0] * env.action_space.n
+        dist = np.zeros((action_dim,), dtype=np.float32)
+
+        while frame_count < min_frame or n_games < min_games:
+            done = False
+            observation = env.reset()
+            self.frames_since_point = 0
+
+            observation = self.preprocess(observation)
+            observation = np.concatenate([observation, observation, observation, observation])
+            while not done or frame_count < min_frame:
+                action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
+                dist += dist_
+                actions[action] += 1
+                reward = 0
+                if render:
+                    env.render()
+                    time.sleep(slow_factor)
+
+                if observation[1] == 0.:
+                    env.step(1)
+                for _ in range(frame_skip):
+                    observation_, rr, done, info = env.step(action)
+                    reward += rr
+
+                #print(observation_)
+
+                observation_ = self.preprocess(observation_)
+                r['game_score'] += reward
+
+                observation = np.concatenate([observation[len(observation) // 4:], observation_])
+
+                r['hit_freq'] += int(self.is_hit(observation))
+                r['game_reward'] += reward
+                if reward < 0:
+                    r['total_punition'] += reward
+
+
+                frame_count += 1
+            n_games += 1
+
+        print(actions)
+        r['avg_length'] = frame_count / float(n_games)
+        dist /= float(frame_count)
+        r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
+        r['eval_length'] = frame_count
+
+        r['hit_freq'] = r['hit_freq'] / frame_count
+        r['efficiency'] = r['game_reward'] / frame_count
+
+        return r
+
+    def play(self, player: Individual,
+             env,
+             batch_size,
+             traj_length,
+             frame_skip,
+             trajectory,
+             action_dim,
+             observation=None):
+
+        actions = [0] * action_dim
+        force_reset = False
+
+        if observation is None:
+            observation = env.reset()
+            observation = self.preprocess(observation)
+            observation = np.concatenate([observation, observation, observation, observation])
+            self.block_hit_combo = 0
+
+        for batch_index in range(batch_size):
+            for frame_count in range(traj_length):
+                action = player.pi.policy.get_action(observation)
+                actions[action] += 1
+                reward = 0
+
+                #env.render()
+                #time.sleep(0.5)
+                if observation[1] == 0.:
+                    env.step(1)
+                for _ in range(frame_skip):
+                    observation_, rr, done, info = env.step(action)
+                    reward += rr
+
+
+                observation_ = self.preprocess(observation_)
+                # win = self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
+                # front = np.clip(self.proximity_to_front(observation_) - 0.25, 0, 1)
+
+                trajectory['state'][batch_index, frame_count] = observation
+                trajectory['action'][batch_index, frame_count] = action
+
+                trajectory['base_rew'][batch_index, frame_count] = reward
+
+                if done or force_reset:
+                    force_reset = False
+                    self.block_hit_combo = 0
+                    observation = self.preprocess(env.reset())
+                    observation = np.concatenate([observation, observation, observation, observation])
+                else:
+                    observation = np.concatenate([observation[len(observation) // 4:], observation_])
+                    is_hit = self.is_hit(observation)
+                    if is_hit:
+                        self.block_hit_combo = 0
+                    trajectory['rew'][batch_index, frame_count] = (reward-self.d_lives(observation))* player.reward_weight[0] \
+                                                              + self.combo_bonus(reward) * player.reward_weight[1] \
+                                                                   + np.float32(is_hit) * player.reward_weight[2]
+
+
+        return observation
 
 
 
@@ -732,7 +895,7 @@ name2class = {'Pong-ramNoFrameskip-v4'    : Pong('Pong-ramNoFrameskip-v4'),
               'Boxing-ramNoFrameskip-v4'  : Boxing('Boxing-ramNoFrameskip-v4'),
               'Boxing-ramDeterministic-v4': Boxing('Boxing-ramDeterministic-v4'),
               'Tennis-ramNoFrameskip-v4'  : Tennis('Tennis-ramNoFrameskip-v4'),
-              'Breakout-ramNoFrameeskip-v4': Breakout('Breakout-ramNoFrameskip-v4'),
+              'Breakout-ramNoFrameskip-v4': Breakout('Breakout-ramNoFrameskip-v4'),
               }
 
 # TODO
