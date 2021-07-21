@@ -697,16 +697,17 @@ class Breakout(EnvUtil):
         self.indexes = np.array([value for value in self['ram_locations'].values()], dtype=np.int32)
         self.centers = np.array([0 for _ in range(len(self.indexes))], dtype=np.float32)
         self.scales = np.array([0.004 for _ in range(len(self.indexes))], dtype=np.float32)
-        self.scales[:3] *= 1
+        self.scales[:3] *= 3
         self.state_dim = len(self.indexes)
         self.block_hit_combo = 0
         self.hit_cooldown = 6
         self.hit_max_cooldown = 18
+        self.n_hit_max = 500.
 
         self['objectives'] = [
             Objective('game_score', domain=(0., 30.)),
-            Objective('efficiency', nature=1, domain=(0., 0.1)),
-            Objective('hit_freq', nature=1, domain=(0., 0.05)),
+            Objective('best_shot', nature=1, domain=(0., 25.)),
+            Objective('n_hits', nature=1, domain=(0., self.n_hit_max)),
         ]
 
         self.action_space_dim = 4
@@ -737,11 +738,12 @@ class Breakout(EnvUtil):
         #       and  0.2 > full_obs[1-3*self.state_dim]-full_obs[1-self.state_dim] > 1e-8 \
         #          and 0.2 > full_obs[1+self.state_dim]-full_obs[1] > 1e-8
         is_hit = (self.hit_cooldown == 0) \
-                 and full_obs[1-self.state_dim] > 165 * 0.004 \
+                 and full_obs[1-self.state_dim] > 165 * 0.004*3 \
                  and 0.2 > full_obs[1-2*self.state_dim]-full_obs[1-self.state_dim] > 1e-8
         if is_hit:
             #print('is_hit !', full_obs[1-2*self.state_dim]/0.004)
             self.hit_cooldown = self.hit_max_cooldown
+            self.block_hit_combo = 0
         elif self.hit_cooldown > 0:
             self.hit_cooldown -= 1
 
@@ -751,7 +753,8 @@ class Breakout(EnvUtil):
         return int((full_obs[5-2*self.state_dim]-full_obs[5-self.state_dim])>1e-6)*1.2
 
     def on_sides(self, full_obs):
-        return full_obs[2 - self.state_dim]/ (0.004) < 57 or full_obs[2 - self.state_dim]/ (0.004) > 190
+        return (full_obs[2 - self.state_dim]/ (0.004*3) < 57 or full_obs[2 - self.state_dim]/ (0.004*3) > 190) and \
+               (full_obs[2]/ (0.004*3) < 57 or full_obs[2] / (0.004*3) > 190)
 
     def combo_bonus(self, reward):
         if reward > 0:
@@ -778,8 +781,8 @@ class Breakout(EnvUtil):
             'game_score'      : 0.0,
             'entropy'       : 0.0,
             'eval_length'   : 0,
-            'efficiency'         : 0.,
-            'hit_freq'          : 0.,
+            'best_shot'         : 0.,
+            'n_hits'          : 0.,
         }
         frame_count = 0.
         n_games = 0
@@ -793,6 +796,7 @@ class Breakout(EnvUtil):
 
             observation = self.preprocess(observation)
             observation = np.concatenate([observation, observation])
+            self.block_hit_combo = 0
             while not done or frame_count < min_frame:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
                 dist += dist_
@@ -806,6 +810,8 @@ class Breakout(EnvUtil):
                     env.step(1)
                 for _ in range(frame_skip):
                     observation_, rr, done, info = env.step(action)
+                    self.combo_bonus(rr)
+                    r['best_shot'] = self.block_hit_combo if self.block_hit_combo > r['best_shot'] else r['best_shot']
                     reward += rr
 
                 #print(observation_)
@@ -814,7 +820,10 @@ class Breakout(EnvUtil):
 
                 observation = np.concatenate([observation[len(observation) // 2:], observation_])
 
-                r['hit_freq'] += int(self.is_hit(observation))
+                r['n_hits'] += int(self.is_hit(observation))
+                if r['n_hits'] >= self.n_hit_max:
+                    print('Max n_hit reached')
+                    break
                 r['game_reward'] += reward
                 if reward < 0:
                     r['total_punition'] += reward
@@ -829,8 +838,6 @@ class Breakout(EnvUtil):
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
 
-        r['hit_freq'] = r['hit_freq'] / frame_count
-        r['efficiency'] = r['game_reward'] / frame_count
 
         return r
 
@@ -884,12 +891,10 @@ class Breakout(EnvUtil):
                 else:
                     observation = np.concatenate([observation[len(observation) // 2:], observation_])
                     is_hit = self.is_hit(observation)
-                    if is_hit:
-                        self.block_hit_combo = 0
                     trajectory['rew'][batch_index, frame_count] = (reward-self.d_lives(observation))* player.reward_weight[0] \
                                                               + self.combo_bonus(reward) * player.reward_weight[1] \
                                                                    + np.float32(is_hit) * player.reward_weight[2] \
-                                                                -np.float32(self.on_sides(observation))*0.01
+                                                                -np.float32(self.on_sides(observation))*0.05
 
 
         print(actions)
