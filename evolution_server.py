@@ -27,7 +27,7 @@ import os
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=32, batch_size=8, max_train=8,
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=128, batch_size=4, max_train=8,
                  early_stop=100, round_length=300, min_eval=100, min_games=5, subprocess=True, mutation_chance=0.5, mutation_rate=1.0):
 
         if collector_ip is None:
@@ -52,7 +52,7 @@ class EvolutionServer:
         self.mutation_rate = mutation_rate
         self.mutation_chance = mutation_chance
         self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim, traj_length=traj_length, batch_size=batch_size)
-        self.frame_skip = 5
+        self.frame_skip = 3
         
         
         

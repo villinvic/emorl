@@ -60,7 +60,7 @@ class RLtest:
                                      self.env,
                                      self.batch,
                                      self.traj,
-                                     5,
+                                     2,
                                      self.trajectory,
                                      self.action_dim,
                                      observation=obs)
@@ -79,7 +79,7 @@ class RLtest:
                 r = self.util.eval(self.player,
                                      self.env,
                                      self.action_dim,
-                                     5,
+                                     2,
                                      min_frame=1,
                                      min_games=1,
                                      render=True)
@@ -90,7 +90,7 @@ class RLtest:
 
         print('done')
 
-def TEST(alpha=0.001, gamma=0.99, traj=32, batch=8):
+def TEST(alpha=0.001, gamma=0.99, traj=128, batch=4):
     tester = RLtest(alpha, gamma, traj, batch)
     tester.train_loop()
 
