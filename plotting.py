@@ -218,8 +218,8 @@ class PlotterV2:
                 else:
                     color = 'r' if index in selected else 'k'
 
-            opti.plot(data[1, index], data[2, index], marker='o', color=color)
-        opti.set_ylabel('Mobility')
+            opti.plot(data[1, index], data[0, index], marker='o', color=color)
+        opti.set_ylabel('Score')
         opti.set_xlabel('Aim quality')
         opti.set_title('Selected individuals')
         opti.set_xlim([-0.05,1.05])
