@@ -53,7 +53,7 @@ class RLtest:
         c = 1
         obs = None
         try:
-            self.player.reward_weight[:] = 1., 0.2, 0.2
+            self.player.reward_weight[:] = 1., 0.01, 0.8
 
             while True:
                 obs = self.util.play(self.player,

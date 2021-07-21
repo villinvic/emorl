@@ -820,7 +820,7 @@ class Breakout(EnvUtil):
 
                 #print(observation_)
                 observation_ = self.preprocess(observation_)
-                #r['game_score'] += reward
+                r['game_score'] += int(reward>0)
 
                 observation = np.concatenate([observation[len(observation) // 2:], observation_])
 
@@ -838,7 +838,6 @@ class Breakout(EnvUtil):
                 frame_count += 1
             r['best_shot'] += best_shot
             r['n_hits'] += hits
-            r['game_score'] += observation[3-self.state_dim] / 0.004
             best_shot = 0
             n_games += 1
 
@@ -904,7 +903,7 @@ class Breakout(EnvUtil):
                 else:
                     observation = np.concatenate([observation[len(observation) // 2:], observation_])
                     is_hit = self.is_hit(observation)
-                    trajectory['rew'][batch_index, frame_count] = (reward-self.d_lives(observation))* player.reward_weight[0] \
+                    trajectory['rew'][batch_index, frame_count] = (np.float32(reward>0)-self.d_lives(observation))* player.reward_weight[0] \
                                                               + self.combo_bonus(reward) * player.reward_weight[1] \
                                                                    + np.float32(is_hit) * player.reward_weight[2] \
                                                                 -np.float32(self.on_sides(observation))*0.05
