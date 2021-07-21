@@ -839,6 +839,7 @@ class Breakout(EnvUtil):
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
+        r['game_score'] /= float(n_games)
 
 
         return r
