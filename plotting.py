@@ -218,9 +218,9 @@ class PlotterV2:
                 else:
                     color = 'r' if index in selected else 'k'
 
-            opti.plot(data[1, index], data[0, index], marker='o', color=color)
-        opti.set_ylabel('Score')
-        opti.set_xlabel('Aim quality')
+            opti.plot(data[1, index], data[2, index], marker='o', color=color)
+        opti.set_ylabel('Best shot')
+        opti.set_xlabel('Number of shoots')
         opti.set_title('Selected individuals')
         opti.set_xlim([-0.05,1.05])
         opti.set_ylim([-0.05,1.05])
