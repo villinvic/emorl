@@ -791,6 +791,7 @@ class Breakout(EnvUtil):
         actions = [0] * env.action_space.n
         dist = np.zeros((action_dim,), dtype=np.float32)
         best_shot = 0
+        hits = 0
 
         while frame_count < min_frame or n_games < min_games:
             done = False
@@ -823,9 +824,11 @@ class Breakout(EnvUtil):
 
                 observation = np.concatenate([observation[len(observation) // 2:], observation_])
 
-                r['n_hits'] += int(self.is_hit(observation))
-                if r['n_hits'] >= self.n_hit_max:
+                hits += int(self.is_hit(observation))
+                if hits >= self.n_hit_max:
                     print('Max n_hit reached')
+                    hits = 0
+
                     break
                 r['game_reward'] += reward
                 if reward < 0:
@@ -834,6 +837,7 @@ class Breakout(EnvUtil):
 
                 frame_count += 1
             r['best_shot'] += best_shot
+            r['n_hits'] += hits
             best_shot = 0
             n_games += 1
 
@@ -844,6 +848,7 @@ class Breakout(EnvUtil):
         r['eval_length'] = frame_count
         r['game_score'] /= float(n_games)
         r['best_shot'] /= float(n_games)
+        r['n_hits'] /= float(n_games)
 
 
         return r
