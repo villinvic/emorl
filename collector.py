@@ -53,7 +53,7 @@ class Collector:
             dummy = gym.make(self.util.name)
 
             self.action_dim = self.util.action_space_dim
-            self.state_shape = self.util.full_state_dim
+            self.state_shape = (self.util.full_state_dim,)
             
             self.goal_dim = self.util.goal_dim
             self.n_send = n_send
