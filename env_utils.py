@@ -898,8 +898,6 @@ class Breakout(EnvUtil):
                                                                    + np.float32(is_hit) * player.reward_weight[2] \
                                                                 -np.float32(self.on_sides(observation))*0.05
 
-
-        print(actions)
         return observation
 
 
