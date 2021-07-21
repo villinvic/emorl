@@ -319,6 +319,7 @@ class Tennis(EnvUtil):
         self.centers = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
         self.scales = np.array([0.007, 0.007, 0.2, 0.007, 0.007, 0.007, 0.007, 0.2, 0.025], dtype=np.float32)
         self.state_dim = len(self.indexes) + 1
+        self.full_state_dim = self.state_dim * 4
         self.y_bounds = (0.91, 1.48)
         # 2 - 74 75 - 148
         self.side = True
@@ -699,6 +700,7 @@ class Breakout(EnvUtil):
         self.scales = np.array([0.004 for _ in range(len(self.indexes))], dtype=np.float32)
         self.scales[:3] *= 3
         self.state_dim = len(self.indexes)
+        self.full_state_dim = 2 * len(self.indexes)
         self.block_hit_combo = 0
         self.hit_cooldown = 6
         self.hit_max_cooldown = 18
