@@ -704,7 +704,7 @@ class Breakout(EnvUtil):
         self.block_hit_combo = 0
         self.hit_cooldown = 6
         self.hit_max_cooldown = 18
-        self.n_hit_max = 500.
+        self.n_hit_max = 200.
 
         self['objectives'] = [
             Objective('game_score', domain=(0., 30.)),
@@ -790,6 +790,7 @@ class Breakout(EnvUtil):
         n_games = 0
         actions = [0] * env.action_space.n
         dist = np.zeros((action_dim,), dtype=np.float32)
+        best_shot = 0
 
         while frame_count < min_frame or n_games < min_games:
             done = False
@@ -813,7 +814,7 @@ class Breakout(EnvUtil):
                 for _ in range(frame_skip):
                     observation_, rr, done, info = env.step(action)
                     self.combo_bonus(rr)
-                    r['best_shot'] = self.block_hit_combo if self.block_hit_combo > r['best_shot'] else r['best_shot']
+                    best_shot = self.block_hit_combo if self.block_hit_combo > best_shot else best_shot
                     reward += rr
 
                 #print(observation_)
@@ -832,6 +833,8 @@ class Breakout(EnvUtil):
 
 
                 frame_count += 1
+            r['best_shot'] += best_shot
+            best_shot = 0
             n_games += 1
 
         print(actions)
@@ -840,6 +843,7 @@ class Breakout(EnvUtil):
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
         r['game_score'] /= float(n_games)
+        r['best_shot'] /= float(n_games)
 
 
         return r
