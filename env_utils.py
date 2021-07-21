@@ -838,6 +838,7 @@ class Breakout(EnvUtil):
                 frame_count += 1
             r['best_shot'] += best_shot
             r['n_hits'] += hits
+            r['game_score'] += 0.5*observation[3-self.state_dim] / 0.004
             best_shot = 0
             n_games += 1
 
