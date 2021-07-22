@@ -53,7 +53,7 @@ class RLtest:
         c = 1
         obs = None
         try:
-            self.player.reward_weight[:] = 1., 0.01, 0.8
+            self.player.reward_weight[:] = 0.5, 0., 0.05
 
             while True:
                 obs = self.util.play(self.player,
@@ -64,7 +64,7 @@ class RLtest:
                                      self.trajectory,
                                      self.action_dim,
                                      observation=obs)
-                self.reward[self.plot_index] = np.mean(self.trajectory['rew'])
+                self.reward[self.plot_index] = np.mean(self.trajectory['base_rew'])
                 self.plot_index += 1
                 self.train()
                 if not c % self.plot_freq:
@@ -90,7 +90,7 @@ class RLtest:
 
         print('done')
 
-def TEST(alpha=0.001, gamma=0.99, traj=128, batch=4):
+def TEST(alpha=0.001, gamma=0.99, traj=60, batch=4):
     tester = RLtest(alpha, gamma, traj, batch)
     tester.train_loop()
 

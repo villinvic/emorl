@@ -27,7 +27,7 @@ import os
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=128, batch_size=4, max_train=8,
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=60, batch_size=4, max_train=10,
                  early_stop=100, round_length=300, min_eval=100, min_games=5, subprocess=True, mutation_chance=0.5, mutation_rate=1.0):
 
         if collector_ip is None:
@@ -164,7 +164,7 @@ class EvolutionServer:
             # SPX for NN
             q1 = deepcopy(p1)
             # q2 = deepcopy(p1)
-            s = 8965 #25 * 64 + 64*65 + 65 * 6 + 65 * 1  # 5,447 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
+            s = 8900 #25 * 64 + 64*65 + 65 * 6 + 65 * 1  # 5,447 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
             c = 0
             point = np.random.randint(0, s)
             for j in range(len(p1['pi'])):
