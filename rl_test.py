@@ -34,8 +34,7 @@ class RLtest:
         self.last_obs = None
 
         self.plot_max = 50000
-        self.reward = np.full((self.plot_max,), np.nan)
-        self.ent = np.full((self.plot_max,), np.nan)
+        self.reward = np.full((self.plot_max, 2), np.nan)
         self.range = np.arange(self.plot_max)
         self.plot_index = 0
 
@@ -46,14 +45,16 @@ class RLtest:
     def plot(self):
 
         plt.clf()
-        plt.plot(self.range, smooth(self.reward, 100))
+        plt.plot(self.range, smooth(self.reward[:, 0], 100), label='total')
+        plt.plot(self.range, smooth(self.reward[:, 1], 100), label='game_score')
+
         plt.savefig('rl/' + str(self.plot_index) + '.png')
 
     def train_loop(self):
         c = 1
         obs = None
         try:
-            self.player.reward_weight[:] = 0.5, 0., 0.05
+            self.player.reward_weight[:] = 0.2, 0., 0.2
 
             while True:
                 obs = self.util.play(self.player,
@@ -64,7 +65,8 @@ class RLtest:
                                      self.trajectory,
                                      self.action_dim,
                                      observation=obs)
-                self.reward[self.plot_index] = np.mean(self.trajectory['base_rew'])
+                self.reward[self.plot_index, 0] = np.mean(self.trajectory['rew'])
+                self.reward[self.plot_index, 1] = np.mean(self.trajectory['base_rew'])
                 self.plot_index += 1
                 self.train()
                 if not c % self.plot_freq:
@@ -90,7 +92,7 @@ class RLtest:
 
         print('done')
 
-def TEST(alpha=0.001, gamma=0.99, traj=60, batch=4):
+def TEST(alpha=0.0005, gamma=0.99, traj=20, batch=16):
     tester = RLtest(alpha, gamma, traj, batch)
     tester.train_loop()
 

@@ -705,7 +705,7 @@ class Breakout(EnvUtil):
         self.hit_cooldown = 0
         self.hit_max_cooldown = 18
         self.n_hit_max = 200.
-        self.on_sides_max_count = 2
+        self.on_sides_max_count = 1
         self.on_sides_count = 0
 
         self.max_pos_history = 60*20
