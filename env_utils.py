@@ -871,6 +871,7 @@ class Breakout(EnvUtil):
             r['best_shot'] += best_shot
             r['n_hits'] += hits
             best_shot = 0
+            hits = 0
             n_games += 1
 
         # print(actions)
