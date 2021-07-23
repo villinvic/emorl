@@ -760,7 +760,7 @@ class Breakout(EnvUtil):
                  and full_obs[1-self.state_dim] > 165 * 0.004*1.2 \
                  and 0.2 > full_obs[1-2*self.state_dim]-full_obs[1-self.state_dim] > 1e-8
         if is_hit:
-            print('is_hit !', full_obs[1-2*self.state_dim]/0.004)
+            #print('is_hit !', full_obs[1-2*self.state_dim]/0.004)
             self.hit_cooldown = self.hit_max_cooldown
             self.block_hit_combo = 0
         elif self.hit_cooldown > 0:
