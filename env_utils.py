@@ -702,7 +702,7 @@ class Breakout(EnvUtil):
         self.state_dim = len(self.indexes)
         self.full_state_dim = 2 * len(self.indexes)
         self.block_hit_combo = 0
-        self.hit_cooldown = 6
+        self.hit_cooldown = 0
         self.hit_max_cooldown = 18
         self.n_hit_max = 200.
         self.on_sides_max_count = 2
@@ -760,7 +760,7 @@ class Breakout(EnvUtil):
                  and full_obs[1-self.state_dim] > 165 * 0.004*1.2 \
                  and 0.2 > full_obs[1-2*self.state_dim]-full_obs[1-self.state_dim] > 1e-8
         if is_hit:
-            #print('is_hit !', full_obs[1-2*self.state_dim]/0.004)
+            print('is_hit !', full_obs[1-2*self.state_dim]/0.004)
             self.hit_cooldown = self.hit_max_cooldown
             self.block_hit_combo = 0
         elif self.hit_cooldown > 0:
@@ -941,7 +941,7 @@ class Breakout(EnvUtil):
                     trajectory['rew'][batch_index, frame_count] = (reward)* player.reward_weight[0] \
                                                               + combo_bonus * player.reward_weight[1] \
                                                               + np.float32(is_hit) * player.reward_weight[2] \
-                                                              - self.d_lives(observation)
+                                                              -(np.float32(self.on_sides(observation))*0.1 + self.d_lives(observation)) * player.reward_weight[0] * 2
 
         return observation
 
