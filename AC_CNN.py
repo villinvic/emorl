@@ -281,8 +281,8 @@ class AC_CNN(tf.keras.Model):
         v_loss, mean_entropy, min_entropy, max_entropy, min_logp, max_logp, p_loss \
             = self._train(states, actions, rewards, gpu)
         tf.print(v_loss, p_loss, mean_entropy, min_entropy, max_entropy, tf.reduce_mean(rewards))
-        if v_loss > 20 :
-            print(rewards)
+        #if v_loss > 20 :
+        #    print(rewards)
 
         """
         tf.summary.scalar(name=self.name + "/v_loss", data=v_loss)
