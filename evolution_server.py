@@ -21,6 +21,7 @@ from copy import deepcopy
 import gym
 from time import time, sleep
 import socket
+import gc
 import os
 
 from nes_py.wrappers import JoypadSpace
@@ -433,6 +434,12 @@ class EvolutionServer:
             print('[%d] DRL ok' % self.ID)
             self.evaluate(trained)
             print('[%d] eval ok' % self.ID)
+
+            self.env.close()
+            gc.collect()
+            self.env = make_env_mario(self.util.name, 2, 4)
+            self.env = JoypadSpace(self.env, SIMPLE_MOVEMENT)
+
 
 
             mating = None
