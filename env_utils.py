@@ -3,7 +3,9 @@ from copy import copy
 import numpy as np
 from population import Individual
 import time
+import tensorflow as tf
 
+import gym_super_mario_bros
 
 class Objective:
     def __init__(self, name, nature=1, domain=(0., 1.)):
@@ -919,7 +921,7 @@ class Breakout(EnvUtil):
                 for _ in range(frame_skip):
                     observation_, rr, done, info = env.step(self.action_to_id(action))
                     reward += np.float32(rr>0)
-                    combo_bonus +=  self.combo_bonus(rr)
+                    combo_bonus += self.combo_bonus(rr)
 
 
                 observation_ = self.preprocess(observation_)
@@ -947,6 +949,229 @@ class Breakout(EnvUtil):
         return observation
 
 
+class Mario(EnvUtil):
+    def __init__(self, name):
+        self.name = name
+        super(Mario, self).__init__(name)
+        self.max_time = 400.
+        self['objectives'] = [
+            Objective('final_x', domain=(0., 3200.)),
+            Objective('time_left', nature=1, domain=(0., self.max_time)),
+            Objective('game_score', nature=1, domain=(0., 10000.)),
+        ]
+
+        self.action_space_dim = 7
+
+        self.state_dim = (70, 70, 2)
+        self.full_state_dim = (70, 70, 2)
+        self.goal_dim = len(self['objectives'])
+
+        self['problems']['SOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][0])
+        self['problems']['SOP2']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
+                                                                                   self['objectives'][2],
+                                                                                   sum_=True)
+
+        self['problems']['MOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
+                                                                                   self['objectives'][2])
+
+        self['problems']['MOP2']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
+                                                                                   self['objectives'][2],
+                                                                                   prioritized=self['objectives'][
+                                                                                       0])
+        self['problems']['MOP2']['complexity'] = 2
+
+        self['problems']['MOP3']['behavior_functions'] = self.build_objective_func(self['objectives'][0],
+                                                                                   self['objectives'][1],
+                                                                                   self['objectives'][2])
+
+    def inertia(self, current, previous):
+        d = (current['x_pos']-previous['x_pos']) * 0.1
+        if d < 0:
+            d *= 0.5
+        return d
+
+    def d_score(self, current, previous):
+        return np.clip(current['score']-previous['score'], 0, np.inf) * 0.001
+
+
+    def eval(self, player: Individual,
+             env,
+             action_dim,
+             frame_skip,
+             min_frame,
+             min_games,
+             render=False,
+             slow_factor=0.,
+             ):
+
+        r = {
+            'game_reward'   : 0.0,
+            'avg_length'    : 0.,
+            'total_punition': 0.0,
+            'final_x'    : 0.,
+            'entropy'       : 0.0,
+            'eval_length'   : 0,
+            'time_left'     : 0.,
+            'game_score'        : 0.,
+        }
+        frame_count = 0.
+        n_games = 0
+        actions = [0] * env.action_space.n
+        dist = np.zeros((action_dim,), dtype=np.float32)
+
+        while frame_count < min_frame or n_games < min_games:
+            done = False
+            observation = env.reset()
+
+            while not done or frame_count < min_frame:
+                action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
+                dist += dist_
+                actions[action] += 1
+
+                observation_, reward, done, info = env.step(action)
+                env.render()
+                reward /= 15.
+
+                observation[:] = observation_
+                # print(observation)
+
+                r['game_reward'] += reward
+                if reward < 0:
+                    r['total_punition'] += reward
+
+                frame_count += 1
+            r['final_x'] += info['x_pos']
+            r['time_left'] += info['time'] if info['flag_get'] else 0
+            r['game_score'] += info['score']
+            n_games += 1
+
+        # print(actions)
+        r['avg_length'] = frame_count / float(n_games)
+        dist /= float(frame_count)
+        r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
+        r['eval_length'] = frame_count
+        r['final_x'] /= float(n_games)
+        r['time_left'] /= float(n_games)
+        r['game_score'] /= float(n_games)
+
+        return r
+
+    def play(self, player: Individual,
+             env,
+             batch_size,
+             traj_length,
+             frame_skip,
+             trajectory,
+             action_dim,
+             observation=None):
+
+        actions = [0] * action_dim
+        info_ = None
+
+        if observation is None:
+            observation = env.reset()
+            self.block_hit_combo = 0
+
+        for batch_index in range(batch_size):
+            for frame_count in range(traj_length):
+                action = player.pi.policy.get_action(observation)
+                actions[action] += 1
+
+                observation_, reward, done, info = env.step(action)
+                if info_ is None:
+                    info_ = dict(info)
+
+                trajectory['state'][batch_index, frame_count] = observation
+                trajectory['action'][batch_index, frame_count] = action
+
+                trajectory['base_rew'][batch_index, frame_count] = reward
+
+                if done :
+                    observation = env.reset()
+                else:
+                    observation[:] = observation_
+
+                trajectory['rew'][batch_index, frame_count] = reward * player.reward_weight[0] \
+                                                              + self.inertia(info, info_) * player.reward_weight[1] \
+                                                              + self.d_score(info, info_) * player.reward_weight[2]
+                info_.update(info)
+
+
+
+        return observation
+
+
+class SkipEnv(gym.Wrapper):
+    def __init__(self, env=None, skip=4):
+        super(SkipEnv, self).__init__(env)
+        self.skip =skip
+
+    def step(self, action):
+        t_reward = 0.
+        done = False
+        for _ in range(self.skip):
+            obs, reward, done, info = self.env.step(action)
+            t_reward += reward
+            if done :
+                break
+        return obs, t_reward, done, info
+
+
+class MarioPreProcess(gym.ObservationWrapper):
+    def __init__(self, env=None):
+        super(MarioPreProcess, self).__init__(env)
+        self.observation_space = gym.spaces.Box(low=0, high=255, shape=(70,70,1), dtype=np.uint8)
+
+    def observation(self, observation):
+        return MarioPreProcess.process(observation)
+
+    @staticmethod
+    def process(frame):
+        new_frame = np.reshape(frame, frame.shape).astype(np.float32)
+        new_frame = 0.299*new_frame[:,:,0] + 0.587*new_frame[:,:,1]+ 0.114*new_frame[:,:,2]
+        return tf.image.resize(new_frame[20:220,64:230][:, :, np.newaxis], (70, 70)).numpy().astype(np.uint8)
+        #return new_frame[10:210:4, 46:246:4][np.newaxis]
+
+class MoveImgChannel(gym.ObservationWrapper):
+    def __init__(self, env):
+        super(MoveImgChannel, self).__init__(env)
+        self.observation_space = gym.spaces.Box(low=0.0, high=1.0,
+                                            shape = (self.observation_space.shape[-1],
+                                                     self.observation_space.shape[0],
+                                                     self.observation_space.shape[1]),
+                                                dtype=np.float32)
+    def observation(self, observation):
+        return np.moveaxis(observation, 2, 0)
+
+class ScaleFrame(gym.ObservationWrapper):
+    def observation(self, observation):
+        return np.array(observation).astype(np.float32) / 255.0
+
+
+class BufferWrapper(gym.ObservationWrapper):
+    def __init__(self, env, n_steps):
+        self.n_steps = n_steps
+        super(BufferWrapper, self).__init__(env)
+        self.observation_space = gym.spaces.Box(
+            env.observation_space.low.repeat(n_steps, axis=0),
+            env.observation_space.high.repeat(n_steps, axis=0),
+            dtype=np.float32
+        )
+
+    def reset(self):
+        self.buffer = np.zeros((70, 70, self.n_steps), dtype=np.float32)
+        return self.observation(self.env.reset())
+
+    def observation(self, observation):
+        self.buffer[:-1] = self.buffer[1:]
+        self.buffer[:,:, -1:] = observation
+        return self.buffer
+
+def make_env_mario(env_name, n_mem, frame_skip):
+    env = gym_super_mario_bros.make(env_name)
+    return ScaleFrame(BufferWrapper(MarioPreProcess(SkipEnv(env, frame_skip)), n_mem))
+
+
 
 name2class = {'Pong-ramNoFrameskip-v4'    : Pong('Pong-ramNoFrameskip-v4'),
               'Pong-ram-v0'               : Pong('Pong-ram-v0'),
@@ -955,4 +1180,5 @@ name2class = {'Pong-ramNoFrameskip-v4'    : Pong('Pong-ramNoFrameskip-v4'),
               'Boxing-ramDeterministic-v4': Boxing('Boxing-ramDeterministic-v4'),
               'Tennis-ramNoFrameskip-v4'  : Tennis('Tennis-ramNoFrameskip-v4'),
               'Breakout-ramNoFrameskip-v4': Breakout('Breakout-ramNoFrameskip-v4'),
+              'Mario'                     : Mario('SuperMarioBros-1-1-v1'),
               }

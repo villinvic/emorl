@@ -22,6 +22,9 @@ import gym
 from time import time, sleep
 import socket
 import os
+
+from nes_py.wrappers import JoypadSpace
+from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 # =============
 
 
@@ -38,21 +41,28 @@ class EvolutionServer:
         self.ID = ID
         
         self.gpu = -int(int(os.environ['CUDA_VISIBLE_DEVICES']) < 0)
-        #physical_devices = tf.config.list_physical_devices('GPU')
-        #print(physical_devices, self.gpu)
-        #if len(physical_devices) > 0 :
-        #    print('setting memory limit')
-        #    tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
+        physical_devices = tf.config.list_physical_devices('GPU')
+        print(physical_devices, self.gpu)
+        if len(physical_devices) > 0 :
+            print('setting memory limit')
+            tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
         #    tf.config.experimental.set_virtual_device_configuration(physical_devices[0], [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=4096)])
 
-        self.env = gym.make(env_id)
+        #self.env = gym.make(env_id)
         self.util = name2class[env_id]
+        #self.action_dim = self.util.action_space_dim
+        #self.state_shape = (self.util.full_state_dim,)
+        self.env = make_env_mario(self.util.name, 2, 4)
+        self.env = JoypadSpace(self.env, SIMPLE_MOVEMENT)
+
+        self.state_shape = self.util.state_dim
         self.action_dim = self.util.action_space_dim
-        self.state_shape = (self.util.full_state_dim,)
+
         self.mutation_rate = mutation_rate
         self.mutation_chance = mutation_chance
         self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim, traj_length=traj_length, batch_size=batch_size)
-        self.frame_skip = 2
+        self.frame_skip = 4
+
         
         
         
@@ -164,7 +174,7 @@ class EvolutionServer:
             # SPX for NN
             q1 = deepcopy(p1)
             # q2 = deepcopy(p1)
-            s = 8900 #25 * 64 + 64*65 + 65 * 6 + 65 * 1  # 5,447 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
+            s = 201464 #8900 #25 * 64 + 64*65 + 65 * 6 + 65 * 1  # 5,447 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
             c = 0
             point = np.random.randint(0, s)
             for j in range(len(p1['pi'])):
@@ -232,7 +242,7 @@ class EvolutionServer:
                 for r in range(len(q['r'])):
                     if np.random.random() < self.mutation_rate:
                         if np.random.random() < 1-resample_chance:
-                            q['r'][r] *= (1 + np.clip(np.random.normal(0,0.15), -0.5, 0.5))# (log_uniform(0, 4., size=(1,), base=10) / 1e4)
+                            q['r'][r] *= (1 + np.clip(np.random.normal(0,0.15), -0.25, 0.25))# (log_uniform(0, 4., size=(1,), base=10) / 1e4)
                         else:
                             q['r'][r] = (log_uniform(0, 4.1, size=(1,), base=10) / 1e4)
 

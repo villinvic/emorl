@@ -219,8 +219,8 @@ class PlotterV2:
                     color = 'r' if index in selected else 'k'
 
             opti.plot(data[1, index], data[2, index], marker='o', color=color)
-        opti.set_xlabel('Best shot')
-        opti.set_ylabel('Number of shoots')
+        opti.set_xlabel('Time left')
+        opti.set_ylabel('Game Score')
         opti.set_title('Selected individuals')
         opti.set_xlim([-0.05,1.05])
         opti.set_ylim([-0.05,1.05])
@@ -233,9 +233,9 @@ class PlotterV2:
 
 
         # Add to util reward names...
-        reward_weights.bar(x - width, data[3, selected[:self.top]], width, label='game_score', color='y')
-        reward_weights.bar(x, data[4, selected[:self.top]], width, label='combo', color='b')
-        reward_weights.bar(x + width, data[5, selected[:self.top]], width, label='hit the ball', color='r')
+        reward_weights.bar(x - width, data[3, selected[:self.top]], width, label='death+timer', color='y')
+        reward_weights.bar(x, data[4, selected[:self.top]], width, label='inertia', color='b')
+        reward_weights.bar(x + width, data[5, selected[:self.top]], width, label='score', color='r')
         reward_weights.set_ylabel('Reward weight')
         reward_weights.set_xlabel('Individual rank')
         reward_weights.set_title('Individual reward weights')

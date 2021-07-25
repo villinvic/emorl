@@ -9,21 +9,28 @@ Observations : None
 """
 
 # == Imports ==
+import numpy as np
+
 from AC import AC
+from AC_CNN import AC_CNN
 from behavior import *
 # =============
 
 class Individual:
 
-    def __init__(self, state_shape, action_dim, goal_dim, epsilon=0.01, lr=0.0005, gamma=0.99, entropy_scale=0.0001,
-                 gae_lambda=1.0, traj_length=10, batch_size=16, neg_scale=1.0, generation=1):
-        self.pi = AC(state_shape, action_dim, epsilon, lr, gamma, entropy_scale, gae_lambda,
+    def __init__(self, state_shape, action_dim, goal_dim, epsilon=0.01, lr=0.0005, gamma=0.99, entropy_scale=0.0005,
+                 gae_lambda=1.0, traj_length=10, batch_size=16, neg_scale=1.0, generation=1, CNN=True):
+
+        if CNN :
+            self.pi = AC_CNN(state_shape, action_dim, epsilon, lr, gamma, entropy_scale, gae_lambda,
+                         traj_length, batch_size, neg_scale)
+        else:
+            self.pi = AC(state_shape, action_dim, epsilon, lr, gamma, entropy_scale, gae_lambda,
                      traj_length, batch_size, neg_scale)
         self.reward_weight = np.random.uniform(0.1, 0.5, size=(goal_dim,))
 
         dummy_obs = np.ones(state_shape, dtype=np.float32)
-        self.pi.policy.get_action(dummy_obs)
-        self.pi.policy.value(dummy_obs[np.newaxis])
+        self.pi.policy.compute_all(dummy_obs[np.newaxis][np.newaxis])
 
         self.behavior_stats = {}
 
