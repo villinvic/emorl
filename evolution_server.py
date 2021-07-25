@@ -432,6 +432,7 @@ class EvolutionServer:
             print('[%d] mutating ok' % self.ID)
             trained = self.DRL(qs)
             print('[%d] DRL ok' % self.ID)
+            tf.keras.backend.clear_session()
             self.evaluate(trained)
             print('[%d] eval ok' % self.ID)
 
