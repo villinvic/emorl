@@ -1029,8 +1029,11 @@ class Mario(EnvUtil):
                 actions[action] += 1
 
                 observation_, reward, done, info = env.step(action)
-                env.render()
-                reward /= 15.
+                reward /= 25.
+                if render:
+                    env.render()
+
+
 
                 observation[:] = observation_
                 # print(observation)
