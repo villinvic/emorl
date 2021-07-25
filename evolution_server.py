@@ -74,7 +74,7 @@ class EvolutionServer:
             self.tunneling = (psw != "")
             self.psw = psw
 
-            self.mating_pipe.setsockopt(zmq.RCVTIMEO, 1000 * 60 * 5)
+            self.mating_pipe.setsockopt(zmq.RCVTIMEO, 1000 * 60 * 15)
             self.mating_pipe.setsockopt(zmq.LINGER, 0)
             if self.tunneling:
                 print('tunnel')
