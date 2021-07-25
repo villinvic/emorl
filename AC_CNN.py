@@ -101,10 +101,10 @@ class CategoricalActor(tf.keras.Model):
         self.state_ndim = len(state_shape)
         self.epsilon = tf.Variable(epsilon, name="Actor_epsilon", trainable=False, dtype=tf.float32)
 
-        self.l1 = TimeDistributed(Conv2D(filters=32, kernel_size=8, strides=4, activation='relu', input_shape=(70,70, 2)))
-        self.l2 = TimeDistributed(Conv2D(filters=64, kernel_size=4, strides=2, activation='relu'))
+        self.l1 = TimeDistributed(Conv2D(filters=32, kernel_size=8, strides=4, activation='elu', input_shape=(70,70, 2)))
+        self.l2 = TimeDistributed(Conv2D(filters=64, kernel_size=4, strides=2, activation='elu'))
         self.flatten = TimeDistributed(Flatten())
-        self.l3 = Dense(64, dtype='float32', name="dense_middle", activation="relu")
+        self.l3 = Dense(64, dtype='float32', name="dense_middle", activation="elu")
 
         self.prob = Dense(action_dim, dtype='float32', name="prob", activation="softmax")
 
