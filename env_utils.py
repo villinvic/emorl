@@ -985,7 +985,7 @@ class Mario(EnvUtil):
                                                                                    self['objectives'][2])
 
     def inertia(self, current, previous):
-        return np.clip((current['x_pos']-previous['x_pos']),0, np.inf) * 0.01
+        return np.clip((current['x_pos']-previous['x_pos']),0, np.inf) * 0.001
 
     def d_score(self, current, previous):
         return np.clip(current['score']-previous['score'], 0, np.inf) * 0.001
@@ -1070,7 +1070,6 @@ class Mario(EnvUtil):
 
         if observation is None:
             observation = env.reset()
-            self.block_hit_combo = 0
 
         for batch_index in range(batch_size):
             for frame_count in range(traj_length):
