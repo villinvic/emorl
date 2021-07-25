@@ -382,7 +382,7 @@ class EvolutionServer:
                                      self.action_dim,
                                      obs)
 
-                #self.player.pi.train(self.trajectory['state'], self.trajectory['action'][:, :-1], self.trajectory['rew'][:, :-1], self.gpu)
+                self.player.pi.train(self.trajectory['state'], self.trajectory['action'][:, :-1], self.trajectory['rew'][:, :-1], self.gpu)
                 training_step += 1
 
                 """
