@@ -382,7 +382,7 @@ class EvolutionServer:
                                      self.action_dim,
                                      obs)
 
-                self.player.pi.train(self.trajectory['state'], self.trajectory['action'][:, :-1], self.trajectory['rew'][:, :-1], self.gpu)
+                #self.player.pi.train(self.trajectory['state'], self.trajectory['action'][:, :-1], self.trajectory['rew'][:, :-1], self.gpu)
                 training_step += 1
 
                 """
@@ -434,13 +434,6 @@ class EvolutionServer:
             print('[%d] DRL ok' % self.ID)
             self.evaluate(trained)
             print('[%d] eval ok' % self.ID)
-
-            self.env.close()
-            gc.collect()
-            self.env = make_env_mario(self.util.name, 2, 4)
-            self.env = JoypadSpace(self.env, SIMPLE_MOVEMENT)
-
-
 
             mating = None
             while mating is None:
