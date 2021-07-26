@@ -32,7 +32,7 @@ from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 class EvolutionServer:
 
     def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=20, batch_size=16, max_train=30,
-                 early_stop=100, round_length=300, min_eval=1, min_games=20, subprocess=True, mutation_chance=0.5, mutation_rate=1.0, crossover_chance=0.5):
+                 early_stop=100, round_length=300, min_eval=1, min_games=20, subprocess=True, mutation_chance=0.5, mutation_rate=1.0, crossover_chance=0.8):
 
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
