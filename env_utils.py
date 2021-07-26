@@ -1190,5 +1190,5 @@ name2class = {'Pong-ramNoFrameskip-v4'    : Pong('Pong-ramNoFrameskip-v4'),
               'Boxing-ramDeterministic-v4': Boxing('Boxing-ramDeterministic-v4'),
               'Tennis-ramNoFrameskip-v4'  : Tennis('Tennis-ramNoFrameskip-v4'),
               'Breakout-ramNoFrameskip-v4': Breakout('Breakout-ramNoFrameskip-v4'),
-              'Mario'                     : Mario('SuperMarioBros-1-1-v3'),
+              'Mario'                     : Mario('SuperMarioBros-1-1-v1'),
               }
