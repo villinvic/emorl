@@ -985,10 +985,10 @@ class Mario(EnvUtil):
                                                                                    self['objectives'][2])
 
     def inertia(self, current, previous):
-        return np.clip((current['x_pos']-previous['x_pos']),0, np.inf) * 0.01
+        return np.clip((current['x_pos']-previous['x_pos']),0, np.inf) * 0.1
 
     def d_score(self, current, previous):
-        return np.clip(current['score']-previous['score'], 0, np.inf) * 0.01
+        return np.clip(current['score']-previous['score'], 0, np.inf) * 0.1
 
 
     def eval(self, player: Individual,
@@ -999,6 +999,7 @@ class Mario(EnvUtil):
              min_games,
              render=False,
              slow_factor=0.,
+             render_test=False,
              ):
 
         r = {
@@ -1030,6 +1031,8 @@ class Mario(EnvUtil):
 
                 if render:
                     time.sleep(slow_factor)
+                    if render_test:
+                        env.render()
 
 
                 observation[:] = observation_
@@ -1051,7 +1054,11 @@ class Mario(EnvUtil):
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
         r['final_x'] /= float(n_games)
-        r['time_left'] /= float(n_games)
+
+        if r['time_left'] < n_games//10 * self.max_time*0.9:
+            r['time_left'] = 0
+        else:
+            r['time_left'] /= float(n_games)
         r['game_score'] /= float(n_games)
 
         return r
@@ -1082,6 +1089,7 @@ class Mario(EnvUtil):
 
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
+                #trajectory['x'][batch_index, frame_count] = info['x_pos']
 
                 trajectory['base_rew'][batch_index, frame_count] = reward
 
@@ -1090,7 +1098,7 @@ class Mario(EnvUtil):
                 else:
                     observation[:] = observation_
 
-                trajectory['rew'][batch_index, frame_count] = reward * player.reward_weight[0] \
+                trajectory['rew'][batch_index, frame_count] = 3 * reward * player.reward_weight[0] \
                                                               + self.inertia(info, info_) * player.reward_weight[1] \
                                                               + self.d_score(info, info_) * player.reward_weight[2]
                 info_.update(info)
@@ -1104,13 +1112,13 @@ class SkipEnv(gym.Wrapper):
     def __init__(self, env=None, skip=4, render=False):
         super(SkipEnv, self).__init__(env)
         self.skip =skip
-        self.render = render
+        self._render = render
 
     def step(self, action):
         t_reward = 0.
         done = False
         for _ in range(self.skip):
-            if self.render:
+            if self._render:
                 self.env.render()
             obs, reward, done, info = self.env.step(action)
             t_reward += reward
@@ -1182,5 +1190,5 @@ name2class = {'Pong-ramNoFrameskip-v4'    : Pong('Pong-ramNoFrameskip-v4'),
               'Boxing-ramDeterministic-v4': Boxing('Boxing-ramDeterministic-v4'),
               'Tennis-ramNoFrameskip-v4'  : Tennis('Tennis-ramNoFrameskip-v4'),
               'Breakout-ramNoFrameskip-v4': Breakout('Breakout-ramNoFrameskip-v4'),
-              'Mario'                     : Mario('SuperMarioBros-1-1-v1'),
+              'Mario'                     : Mario('SuperMarioBros-1-1-v3'),
               }

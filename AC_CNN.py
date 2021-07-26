@@ -101,10 +101,11 @@ class CategoricalActor(tf.keras.Model):
         self.state_ndim = len(state_shape)
         self.epsilon = tf.Variable(epsilon, name="Actor_epsilon", trainable=False, dtype=tf.float32)
 
-        self.l1 = Conv2D(filters=32, kernel_size=8, strides=4, activation='relu')
-        self.l2 = Conv2D(filters=64, kernel_size=4, strides=2, activation='relu')
+        self.l1 = Conv2D(filters=16, kernel_size=4, strides=4, activation='relu')
+        self.l2 = Conv2D(filters=32, kernel_size=2, strides=2, activation='relu')
         self.flatten = TimeDistributed(Flatten())
-        self.l3 = Dense(64, dtype='float32', name="dense_middle", activation="relu")
+        self.l3_v = Dense(32, dtype='float32', name="dense_p", activation="relu")
+        self.l3_p = Dense(32, dtype='float32', name="dense_v", activation="relu")
 
         self.prob = Dense(action_dim, dtype='float32', name="prob", activation="softmax")
 
@@ -126,7 +127,6 @@ class CategoricalActor(tf.keras.Model):
         features = self.l1(states)
         features = self.l2(features)
         features = self.flatten(features)
-        features = self.l3(features)
         return features
 
     def _compute_dist(self, states, eval=False):
@@ -137,7 +137,7 @@ class CategoricalActor(tf.keras.Model):
             NN outputs probabilities of K classes
         :return: Categorical distribution
         """
-        features = self._compute_feature(states)
+        features = self.l3_p(self._compute_feature(states))
 
         if eval:
             probs = self.prob(features)
@@ -166,12 +166,12 @@ class CategoricalActor(tf.keras.Model):
         return self._compute_dist(states)["prob"]
 
     def value(self, states):
-        return self.v(self._compute_feature(states))
+        return self.v(self.l3_v(self._compute_feature(states)))
         
     def compute_all(self, states):
         features = self._compute_feature(states)
-        p = self.prob(features) * (1.0 - self.epsilon) + self.epsilon / np.float32(self.action_dim)
-        v = self.v(features)
+        p = self.prob(self.l3_p(features)) * (1.0 - self.epsilon) + self.epsilon / np.float32(self.action_dim)
+        v = self.v(self.l3_v(features))
         return v, p
 
     def compute_entropy(self, states):
