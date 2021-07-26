@@ -985,10 +985,10 @@ class Mario(EnvUtil):
                                                                                    self['objectives'][2])
 
     def inertia(self, current, previous):
-        return np.clip((current['x_pos']-previous['x_pos']),0, np.inf) * 0.001
+        return np.clip((current['x_pos']-previous['x_pos']),0, np.inf) * 0.01
 
     def d_score(self, current, previous):
-        return np.clip(current['score']-previous['score'], 0, np.inf) * 0.001
+        return np.clip(current['score']-previous['score'], 0, np.inf) * 0.01
 
 
     def eval(self, player: Individual,
@@ -1027,9 +1027,9 @@ class Mario(EnvUtil):
 
                 observation_, reward, done, info = env.step(action)
                 reward /= 25.
-                if render:
-                    env.render()
 
+                if render:
+                    time.sleep(slow_factor)
 
 
                 observation[:] = observation_
@@ -1101,14 +1101,17 @@ class Mario(EnvUtil):
 
 
 class SkipEnv(gym.Wrapper):
-    def __init__(self, env=None, skip=4):
+    def __init__(self, env=None, skip=4, render=False):
         super(SkipEnv, self).__init__(env)
         self.skip =skip
+        self.render = render
 
     def step(self, action):
         t_reward = 0.
         done = False
         for _ in range(self.skip):
+            if self.render:
+                self.env.render()
             obs, reward, done, info = self.env.step(action)
             t_reward += reward
             if done :
@@ -1166,9 +1169,9 @@ class BufferWrapper(gym.ObservationWrapper):
         self.buffer[:,:, -1:] = observation
         return self.buffer
 
-def make_env_mario(env_name, n_mem, frame_skip):
+def make_env_mario(env_name, n_mem, frame_skip, render=False):
     env = gym_super_mario_bros.make(env_name)
-    return ScaleFrame(BufferWrapper(MarioPreProcess(SkipEnv(env, frame_skip)), n_mem))
+    return ScaleFrame(BufferWrapper(MarioPreProcess(SkipEnv(env, frame_skip, render)), n_mem))
 
 
 

@@ -32,7 +32,7 @@ from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 class EvolutionServer:
 
     def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=20, batch_size=16, max_train=20,
-                 early_stop=100, round_length=300, min_eval=1, min_games=10, subprocess=True, mutation_chance=0.5, mutation_rate=1.0):
+                 early_stop=100, round_length=300, min_eval=1, min_games=10, subprocess=True, mutation_chance=0.5, mutation_rate=1.0, crossover_chance=0.5):
 
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
@@ -61,6 +61,7 @@ class EvolutionServer:
 
         self.mutation_rate = mutation_rate
         self.mutation_chance = mutation_chance
+        self.crossover_chance = crossover_chance
         self.player = Individual(self.state_shape, self.action_dim, self.util.goal_dim, traj_length=traj_length, batch_size=batch_size)
         self.frame_skip = 4
 
@@ -175,44 +176,45 @@ class EvolutionServer:
             # SPX for NN
             q1 = deepcopy(p1)
             # q2 = deepcopy(p1)
-            s = 201464 #8900 #25 * 64 + 64*65 + 65 * 6 + 65 * 1  # 5,447 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
-            c = 0
-            point = np.random.randint(0, s)
-            for j in range(len(p1['pi'])):
-                if isinstance(p1['pi'][j], np.ndarray) and len(p1['pi'][j] > 0):
-                    if isinstance(p1['pi'][j][0], np.ndarray) and len(p1['pi'][j] > 0):
-                        for k in range(len(p1['pi'][j])):
-                            if c + len(p1['pi'][j][k]) > point and c < point:
-                                q1['pi'][j][k][:point-c] = p2['pi'][j][k][:point-c]
-                                # q2['pi'][j][k][point-c:] = p2['pi'][j][k][point-c:]
-                            elif c < point :
-                                q1['pi'][j][k] = p2['pi'][j][k]
-                            else:
-                                pass
-                                # q2['pi'][j][k] = p2['pi'][j][k]
-                            c += len(p1['pi'][j][k])
-                    else:
-                        if c + len(p1['pi'][j]) > point > c:
-                            q1['pi'][j][:point-c] = p2['pi'][j][:point-c]
-                            # q2['pi'][j][point-c:] = p2['pi'][j][point-c:]
-                        elif c < point:
-                            q1['pi'][j] = p2['pi'][j]
+            if np.random.random() < self.crossover_chance:
+                s = 201464 #8900 #25 * 64 + 64*65 + 65 * 6 + 65 * 1  # 5,447 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
+                c = 0
+                point = np.random.randint(0, s)
+                for j in range(len(p1['pi'])):
+                    if isinstance(p1['pi'][j], np.ndarray) and len(p1['pi'][j] > 0):
+                        if isinstance(p1['pi'][j][0], np.ndarray) and len(p1['pi'][j] > 0):
+                            for k in range(len(p1['pi'][j])):
+                                if c + len(p1['pi'][j][k]) > point and c < point:
+                                    q1['pi'][j][k][:point-c] = p2['pi'][j][k][:point-c]
+                                    # q2['pi'][j][k][point-c:] = p2['pi'][j][k][point-c:]
+                                elif c < point :
+                                    q1['pi'][j][k] = p2['pi'][j][k]
+                                else:
+                                    pass
+                                    # q2['pi'][j][k] = p2['pi'][j][k]
+                                c += len(p1['pi'][j][k])
                         else:
-                            # q2['pi'][j] = p2['pi'][j]
-                            pass
-                        c += len(p1['pi'][j])
-            print(c)
+                            if c + len(p1['pi'][j]) > point > c:
+                                q1['pi'][j][:point-c] = p2['pi'][j][:point-c]
+                                # q2['pi'][j][point-c:] = p2['pi'][j][point-c:]
+                            elif c < point:
+                                q1['pi'][j] = p2['pi'][j]
+                            else:
+                                # q2['pi'][j] = p2['pi'][j]
+                                pass
+                            c += len(p1['pi'][j])
+                print(c)
 
-            # SBX for reward
-            distance = np.fabs(p1['r'] - p2['r'])
-            x = 0.5 * (p1['r'] + p2['r'])
-            for j in range(len(p1['r'])):
-                beta1, beta2 = self.SBX_beta(20, p1['r'][j], p2['r'][j], distance[j])
-                if np.random.random() < 0.5:
-                    q1['r'] = np.clip(x - 0.5 * beta1 * distance, 0, np.inf)
-                else:
-                    q1['r'] = np.clip(x + 0.5 * beta2 * distance, 0, np.inf)
-            # q2['r'] = x + 0.5 * beta * (np.abs(p1['r'] - p2['r']))
+                # SBX for reward
+                distance = np.fabs(p1['r'] - p2['r'])
+                x = 0.5 * (p1['r'] + p2['r'])
+                for j in range(len(p1['r'])):
+                    beta1, beta2 = self.SBX_beta(20, p1['r'][j], p2['r'][j], distance[j])
+                    if np.random.random() < 0.5:
+                        q1['r'] = np.clip(x - 0.5 * beta1 * distance, 0, np.inf)
+                    else:
+                        q1['r'] = np.clip(x + 0.5 * beta2 * distance, 0, np.inf)
+                # q2['r'] = x + 0.5 * beta * (np.abs(p1['r'] - p2['r']))
 
 
             offspring[offspring_index] = q1
