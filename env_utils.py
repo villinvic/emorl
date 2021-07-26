@@ -985,10 +985,10 @@ class Mario(EnvUtil):
                                                                                    self['objectives'][2])
 
     def inertia(self, current, previous):
-        return np.clip((current['x_pos']-previous['x_pos']),0, np.inf) * 0.1
+        return np.clip((current['x_pos']-previous['x_pos']),0, np.inf) * 0.01
 
     def d_score(self, current, previous):
-        return np.clip(current['score']-previous['score'], 0, np.inf) * 0.1
+        return np.clip(current['score']-previous['score'], 0, np.inf) * 0.001
 
 
     def eval(self, player: Individual,
