@@ -31,8 +31,8 @@ from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=20, batch_size=16, max_train=30,
-                 early_stop=100, round_length=300, min_eval=1, min_games=20, subprocess=True, mutation_chance=0.5, mutation_rate=1.0, crossover_chance=0.8):
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=20, batch_size=16, max_train=10,
+                 early_stop=100, round_length=300, min_eval=1, min_games=5, subprocess=True, mutation_chance=0.5, mutation_rate=1.0, crossover_chance=0.8):
 
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
@@ -49,15 +49,15 @@ class EvolutionServer:
             tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
         #    tf.config.experimental.set_virtual_device_configuration(physical_devices[0], [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=4096)])
 
-        #self.env = gym.make(env_id)
+        self.env = gym.make(env_id)
         self.util = name2class[env_id]
-        #self.action_dim = self.util.action_space_dim
-        #self.state_shape = (self.util.full_state_dim,)
-        self.env = make_env_mario(self.util.name, 2, 4)
-        self.env = JoypadSpace(self.env, SIMPLE_MOVEMENT)
-
-        self.state_shape = self.util.state_dim
         self.action_dim = self.util.action_space_dim
+        self.state_shape = (self.util.full_state_dim,)
+        #self.env = make_env_mario(self.util.name, 2, 4)
+        #self.env = JoypadSpace(self.env, SIMPLE_MOVEMENT)
+
+        #self.state_shape = self.util.state_dim
+        #self.action_dim = self.util.action_space_dim
 
         self.mutation_rate = mutation_rate
         self.mutation_chance = mutation_chance
@@ -177,7 +177,7 @@ class EvolutionServer:
             q1 = deepcopy(p1)
             # q2 = deepcopy(p1)
             if np.random.random() < self.crossover_chance:
-                s = 201464 #8900 #25 * 64 + 64*65 + 65 * 6 + 65 * 1  # 5,447 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
+                s = 41235 # 201464 #8900 #25 * 64 + 64*65 + 65 * 6 + 65 * 1  # 5,447 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
                 c = 0
                 point = np.random.randint(0, s)
                 for j in range(len(p1['pi'])):

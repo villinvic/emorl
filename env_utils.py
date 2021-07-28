@@ -4,7 +4,7 @@ import numpy as np
 from population import Individual
 import time
 import tensorflow as tf
-
+from PIL import Image
 import gym_super_mario_bros
 
 class Objective:
@@ -300,6 +300,366 @@ class Boxing(EnvUtil):
 
         return observation
 
+class TennisImage(EnvUtil):
+    def __init__(self, name):
+        super(TennisImage, self).__init__(name)
+        self['ram_locations'] = dict(enemy_x=27,
+                                     enemy_y=25,
+                                     enemy_score=70,
+                                     ball_x=16,
+                                     ball_y=15,
+                                     player_x=26,
+                                     player_y=24,
+                                     player_score=69,
+                                     ball_height=17)
+
+        self.indexes = np.array([value for value in self['ram_locations'].values()], dtype=np.int32)
+        self.reversed_indexes = np.array([26, 24, 70, 16, 15, 27, 25, 69, 17], dtype=np.int32)
+        self.centers = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
+        self.scales = np.array([0.007, 0.007, 0.2, 0.007, 0.007, 0.007, 0.007, 0.2, 0.025], dtype=np.float32)
+
+        self.state_dim = (80, 70, 4)
+        self.full_state_dim = (80, 70, 4)
+        self.ram_state_dim = len(self.indexes) + 1
+        self.y_bounds = (0.91, 1.48)
+        # 2 - 74 75 - 148
+        self.side = True
+        self.max_frames = 15000
+        self.frames_since_point = 0
+        self.opposite_action_space = {
+            0 : 0,
+            1 : 1,
+            2 : 5,
+            3 : 3,
+            4 : 4,
+            5 : 2,
+            6 : 8,
+            7 : 9,
+            8 : 6,
+            9 : 7,
+            10: 13,
+            11: 11,
+            12: 12,
+            13: 10,
+            14: 16,
+            15: 17,
+            16: 14,
+            17: 15
+        }
+
+        self.points = np.array([71, 72], dtype=np.int32)
+        self.top_side_points = np.array([0, 3, 4, 7, 8, 11])
+
+        self['objectives'] = [
+            Objective('game_score'),
+            Objective('aim_quality', domain=(0., 0.55)),
+            Objective('mobility', domain=(0., 0.06)),
+        ]
+
+        self.action_space_dim = 18
+        self.goal_dim = len(self['objectives'])
+
+        self['problems']['SOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][0])
+        self['problems']['SOP2']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
+                                                                                   self['objectives'][2],
+                                                                                   sum_=True)
+
+        self['problems']['MOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
+                                                                                   self['objectives'][2])
+
+        self['problems']['MOP2']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
+                                                                                   self['objectives'][2],
+                                                                                   prioritized=self['objectives'][
+                                                                                       0])
+        self['problems']['MOP2']['complexity'] = 2
+
+        self['problems']['MOP3']['behavior_functions'] = self.build_objective_func(self['objectives'][0],
+                                                                                   self['objectives'][1],
+                                                                                   self['objectives'][2])
+
+        self['problems'].update({
+            'SOP3': {
+                'is_single'         : True,
+                'complexity'        : 1,
+                'behavior_functions': self.build_objective_func(self['objectives'][0],
+                                                                self['objectives'][1],
+                                                                sum_=True),
+            }})
+
+        self['problems'].update({
+            'MOP4': {
+                'is_single'         : True,
+                'complexity'        : 1,
+                'behavior_functions': self.build_objective_func(self['objectives'][0], self['objectives'][1]),
+            }})
+
+        self.mins = [np.inf, np.inf]
+        self.maxs = [-np.inf, -np.inf]
+        self.ball_max = [-np.inf, -np.inf]
+        self.ball_min = [np.inf, np.inf]
+
+    def action_to_id(self, action_id):
+        return action_id
+
+
+    def preprocess(self, obs):
+
+        if self.side:
+            indexes = self.indexes
+        else:
+            indexes = self.reversed_indexes
+        return np.concatenate([(obs[indexes] - self.centers) * self.scales, [np.float32(self.side)]])
+
+    def is_back(self, obs):
+        # print(np.sqrt((obs[5]-obs[3])**2+(obs[6]-obs[4])**2))
+        # for ob, k in zip(obs, self['ram_locations'].keys()):
+        #    print(k, ob)
+        # print()
+        if self.side:
+            return obs[6] > 1.022
+        else:
+            return obs[6] < 0.028
+
+    def is_front(self, obs):
+        # print(obs[3]*100, obs[4]*100)
+        if self.side:
+            return obs[6] < 0.756
+        else:
+            return obs[6] > 0.294
+
+    def distance_ran(self, obs, obs_):
+        d = np.sqrt((obs[1] - obs_[1]) ** 2 + (obs[0] - obs_[0]) ** 2)
+        if d > 20 * 0.007:
+            d = 0
+        return d
+
+    def self_dy(self, full_obs):
+        return np.abs(full_obs[6] - full_obs[-self.ram_state_dim + 6])
+
+    def aim_quality(self, full_obs):
+        ball_x = full_obs[-self.ram_state_dim + 3]
+        ball_y = full_obs[-self.ram_state_dim + 4]
+        # print('1', ball_x, ball_y)
+        # print('2', full_obs[-2*self.state_dim+3], full_obs[-2*self.state_dim+4])
+        vector = complex(ball_y - full_obs[-2 * self.ram_state_dim + 4], ball_x - full_obs[-2 * self.ram_state_dim + 3])
+        angle = np.angle(vector)
+
+        opp_x = full_obs[-self.ram_state_dim]
+        opp_y = full_obs[-self.ram_state_dim + 1]
+        dY = opp_y - ball_y
+
+        scale = (0.5 + 0.2 * np.abs(dY)) * np.sign(dY)
+        deviation = np.tan(angle) * scale
+
+        quality = np.clip(np.abs(ball_x + deviation - opp_x), 0, 1) + 0.2
+
+        return quality
+
+    def proximity_to_front(self, obs):
+        if self.side:
+            return (np.abs(0.406 - (obs[6] - 0.63)) / 0.406) ** 2
+        else:
+            return ((obs[6] - 0.014) / 0.406) ** 2
+
+    def proximity_to_back(self, obs):
+        if self.side:
+            return (np.abs(0.406 - (1.036 - obs[6])) / 0.406) ** 2
+        else:
+            return (np.abs(0.406 - (obs[6] - 0.014)) / 0.406) ** 2
+
+    def is_returning(self, preprocessed_obs, opp=False):
+        if opp:
+            side = not self.side
+        else:
+            side = self.side
+        d1 = preprocessed_obs[4 + self.ram_state_dim] - preprocessed_obs[4]
+        d2 = preprocessed_obs[4 - self.ram_state_dim * 2] - preprocessed_obs[4 - self.ram_state_dim * 3]
+        d2x = preprocessed_obs[3 - self.ram_state_dim * 2] - preprocessed_obs[3 - self.ram_state_dim * 3]
+        if abs(d2) + abs(d2x) > 0.1:
+            return False
+
+        d = d1 * d2
+
+        if not side:
+            d2 = -d2
+
+        return (d <= 0 and d2 < 0)
+
+    def win(self, obs, last_obs, eval=False):
+        dself = obs[7] - last_obs[7]
+        dopp = obs[2] - last_obs[2]
+        dscore = np.clip(dself, 0, 1) - np.clip(dopp, 0, 1)
+        return dscore
+
+    def swap_court(self, full_obs):
+        total = np.sum(full_obs[self.points])
+        if total in self.top_side_points:
+            self.side = True
+        else:
+            self.side = False
+
+    def eval(self, player: Individual,
+             env,
+             action_dim,
+             frame_skip,
+             min_frame,
+             min_games,
+             render=False,
+             render_test=False,
+             slow_factor=0.017,
+             ):
+
+        r = {
+            'game_reward'   : 0.0,
+            'avg_length'    : 0.,
+            'total_punition': 0.0,
+            'game_score'    : 0.0,
+            'entropy'       : 0.0,
+            'eval_length'   : 0,
+            'mobility'      : 0.,
+            'n_shoots'      : 0.,
+            'aim_quality'   : 0.,
+            'opp_shoots'    : 0,
+        }
+        frame_count = 0.
+        n_games = 0
+        actions = [0] * env.action_space.n
+        dist = np.zeros((action_dim,), dtype=np.float32)
+
+        while frame_count < min_frame or n_games < min_games:
+            done = False
+            observation = env.reset()
+            self.frames_since_point = 0
+
+            ram_data = env.unwrapped._get_ram()
+            self.swap_court(observation)
+            ram_data  = self.preprocess(ram_data)
+            ram_data = np.concatenate([ram_data, ram_data, ram_data, ram_data])
+            while not done or frame_count < min_frame:
+                action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
+                dist += dist_
+                actions[action] += 1
+                if render:
+                    env.render()
+                    if render_test:
+                        time.sleep(slow_factor)
+
+                observation, reward, done, info = env.step(self.action_to_id(action))
+
+                if reward == 0:
+                    if abs(ram_data[3] - ram_data[3 + 3 * self.ram_state_dim]) < 1e-4 and \
+                            abs(ram_data[4] - ram_data[4 + 3 * self.ram_state_dim]) < 1e-4:
+                        self.frames_since_point += 1
+                        if self.frames_since_point > 300 // frame_skip:
+                            r['game_score'] = -np.inf
+                            r['mobility'] = -np.inf
+                            r['aim_quality'] = -np.inf
+                            return r
+                else:
+                    self.frames_since_point = 0
+                ram_data_ = env.unwrapped._get_ram()
+                self.swap_court(ram_data_)
+                ram_data_ = self.preprocess(ram_data_)
+                r['game_score'] += reward  # self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
+                # r['opponent_run_distance'] += self.distance_ran(observation[3 * len(observation) // 4:], observation_)
+                ram_data = np.concatenate([ram_data[len(ram_data) // 4:], ram_data_])
+                r['mobility'] += self.self_dy(ram_data)
+
+                is_returning = self.is_returning(ram_data)
+                if is_returning:
+                    r['n_shoots'] += 1
+                    r['aim_quality'] += self.aim_quality(ram_data)
+                r['opp_shoots'] += int(self.is_returning(ram_data, True))
+                r['game_reward'] += reward
+                if reward < 0:
+                    r['total_punition'] += reward
+
+                frame_count += 1
+            n_games += 1
+
+        print(actions)
+        r['avg_length'] = frame_count / float(n_games)
+        r['game_score'] = (r['game_score'] + 24. * n_games) / (48. * n_games)
+        dist /= float(frame_count)
+        r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
+        r['eval_length'] = frame_count
+        r['aim_quality'] /= np.clip(r['n_shoots'], 120, np.inf)
+        r['mobility'] /= frame_count
+
+        return r
+
+    def play(self, player: Individual,
+             env,
+             batch_size,
+             traj_length,
+             frame_skip,
+             trajectory,
+             action_dim,
+             data=None):
+
+        actions = [0] * action_dim
+        force_reset = False
+
+        if data is None:
+            observation = env.reset()
+            self.frames_since_point = 0
+            ram_data = env.unwrapped._get_ram()
+            self.swap_court(ram_data)
+            ram_data = self.preprocess(ram_data)
+            ram_data = np.concatenate([ram_data, ram_data, ram_data, ram_data])
+        else:
+            observation, ram_data = data
+
+        for batch_index in range(batch_size):
+            for frame_count in range(traj_length):
+                action = player.pi.policy.get_action(observation)
+                actions[action] += 1
+
+                # env.render()
+                # time.sleep(0.5)
+                observation_, reward, done, info = env.step(self.action_to_id(action))
+
+                # print(observation_)
+                ram_data_ = env.unwrapped._get_ram()
+                self.swap_court(ram_data_)
+                ram_data_ = self.preprocess(ram_data_)
+                punish = 0
+                if reward == 0:
+                    if abs(ram_data[3] - ram_data[3 + 3 * self.ram_state_dim]) < 1e-4 and \
+                            abs(ram_data[4] - ram_data[4 + 3 * self.ram_state_dim]) < 1e-4:
+                        self.frames_since_point += 1
+                        if self.frames_since_point > 300 // frame_skip:
+                            punish -= 1.5
+                            force_reset = True
+                else:
+                    self.frames_since_point = 0
+
+                # win = self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
+                # front = np.clip(self.proximity_to_front(observation_) - 0.25, 0, 1)
+                back = self.proximity_to_back(ram_data_)
+
+                trajectory['state'][batch_index, frame_count] = observation
+                trajectory['action'][batch_index, frame_count] = action
+                trajectory['rew'][batch_index, frame_count] = reward * player.reward_weight[0] + punish
+                # -0.5 * front * player.reward_weight[2]
+                observation[:] = observation_
+
+                trajectory['base_rew'][batch_index, frame_count] = reward
+
+                if done or force_reset:
+                    force_reset = False
+                    self.frames_since_point = 0
+                    observation = env.reset()
+                    ram_data = self.preprocess(env.unwrapped._get_ram())
+                    ram_data = np.concatenate([ram_data, ram_data, ram_data, ram_data])
+                else:
+                    ram_data = np.concatenate([ram_data[len(ram_data) // 4:], ram_data_])
+                    trajectory['rew'][batch_index, frame_count] += \
+                        self.aim_quality(ram_data) * np.float32(self.is_returning(ram_data)) * \
+                        player.reward_weight[1] \
+                        + (1 + back) * self.self_dy(ram_data) * player.reward_weight[2]
+        return observation, ram_data
+
 
 class Tennis(EnvUtil):
     def __init__(self, name):
@@ -320,7 +680,7 @@ class Tennis(EnvUtil):
         self.reversed_indexes = np.array([26, 24, 70, 16, 15, 27, 25, 69, 17], dtype=np.int32)
         self.centers = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
         self.scales = np.array([0.007, 0.007, 0.2, 0.007, 0.007, 0.007, 0.007, 0.2, 0.025], dtype=np.float32)
-        self.state_dim = len(self.indexes) + 1
+        self.state_dim = len(self.indexes) + 2
         self.full_state_dim = self.state_dim * 4
         self.y_bounds = (0.91, 1.48)
         # 2 - 74 75 - 148
@@ -415,7 +775,13 @@ class Tennis(EnvUtil):
             indexes = self.indexes
         else:
             indexes = self.reversed_indexes
-        return np.concatenate([(obs[indexes] - self.centers) * self.scales, [np.float32(self.side)]])
+
+        reduced = (obs[indexes] - self.centers) * self.scales
+        distance_from_ball = self.distance_from_ball(reduced)
+        return np.concatenate([(obs[indexes] - self.centers) * self.scales, [np.float32(self.side), distance_from_ball]])
+
+    def distance_from_ball(self, obs):
+        return np.sqrt((obs[3]-obs[5])**2+(obs[4]-obs[6])**2) * 0.6
 
     def is_back(self, obs):
         #print(np.sqrt((obs[5]-obs[3])**2+(obs[6]-obs[4])**2))
@@ -564,7 +930,7 @@ class Tennis(EnvUtil):
                     if abs(observation[3]-observation[3+3*self.state_dim])<1e-4 and\
                             abs(observation[4]-observation[4+3*self.state_dim])<1e-4 :
                         self.frames_since_point += 1
-                        if self.frames_since_point > 800//frame_skip:
+                        if self.frames_since_point > 300//frame_skip:
                             r['game_score'] = -np.inf
                             r['mobility'] = -np.inf
                             r['aim_quality'] = -np.inf
@@ -634,7 +1000,6 @@ class Tennis(EnvUtil):
 
                 #env.render()
                 #time.sleep(0.5)
-
                 for _ in range(frame_skip):
                     observation_, rr, done, info = env.step(
                         self.action_to_id(action))
@@ -648,7 +1013,7 @@ class Tennis(EnvUtil):
                             abs(observation[4]-observation[4+3*self.state_dim])<1e-4 :
                         self.frames_since_point += 1
                         if self.frames_since_point > 300//frame_skip:
-                            punish -= 10
+                            punish -= 1.5
                             force_reset = True
                 else:
                     self.frames_since_point = 0
@@ -660,7 +1025,7 @@ class Tennis(EnvUtil):
 
                 trajectory['state'][batch_index, frame_count] = observation
                 trajectory['action'][batch_index, frame_count] = action
-                trajectory['rew'][batch_index, frame_count] = reward * player.reward_weight[0] + punish
+                trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] + punish
                                                               #-0.5 * front * player.reward_weight[2]
 
                 trajectory['base_rew'][batch_index, frame_count] = reward
@@ -1139,8 +1504,30 @@ class MarioPreProcess(gym.ObservationWrapper):
     def process(frame):
         new_frame = np.reshape(frame, frame.shape).astype(np.float32)
         new_frame = 0.299*new_frame[:,:,0] + 0.587*new_frame[:,:,1]+ 0.114*new_frame[:,:,2]
-        return tf.image.resize(new_frame[20:220,64:230][:, :, np.newaxis], (70, 70)).numpy().astype(np.uint8)
+        img =  tf.image.resize(new_frame[20:220,64:230][:, :, np.newaxis], (70, 70)).numpy().astype(np.uint8)
+        return img
         #return new_frame[10:210:4, 46:246:4][np.newaxis]
+
+class GymPreProcess(gym.ObservationWrapper):
+    # 210, 160, 3
+    def __init__(self, env=None):
+        super(GymPreProcess, self).__init__(env)
+        self.observation_space = gym.spaces.Box(low=0, high=255, shape=(80,70,1), dtype=np.uint8)
+
+    def observation(self, observation):
+        return GymPreProcess.process(observation)
+
+    @staticmethod
+    def process(frame):
+        new_frame = np.reshape(frame, frame.shape).astype(np.float32)
+        new_frame = 0.999*new_frame[:,:,0] + 0.*new_frame[:,:,1]+ 0.001*new_frame[:,:,2] # 0.299*new_frame[:,:,0] + 0.587*new_frame[:,:,1]+ 0.114*new_frame[:,:,2]
+        img = new_frame[50:210:2,10:150:2][:, :, np.newaxis]
+        #img = tf.image.resize(new_frame[50:210,10:150][:, :, np.newaxis], (80, 70), method='nearest').numpy().astype(np.uint8)
+        #if np.random.random() < 0.0005:
+        #    i = Image.fromarray(img[:,:,0], 'L')
+        #    i.save('state.png')
+        #time.sleep(15)
+        return img
 
 class MoveImgChannel(gym.ObservationWrapper):
     def __init__(self, env):
@@ -1169,7 +1556,7 @@ class BufferWrapper(gym.ObservationWrapper):
         )
 
     def reset(self):
-        self.buffer = np.zeros((70, 70, self.n_steps), dtype=np.float32)
+        self.buffer = np.zeros((80, 70, self.n_steps), dtype=np.float32)
         return self.observation(self.env.reset())
 
     def observation(self, observation):
@@ -1181,6 +1568,10 @@ def make_env_mario(env_name, n_mem, frame_skip, render=False):
     env = gym_super_mario_bros.make(env_name)
     return ScaleFrame(BufferWrapper(MarioPreProcess(SkipEnv(env, frame_skip, render)), n_mem))
 
+def make_img_env_gym(env_name, n_mem, frame_skip, render=False):
+    env = gym.make(env_name)
+    return ScaleFrame(BufferWrapper(GymPreProcess(SkipEnv(env, frame_skip, render)), n_mem))
+
 
 
 name2class = {'Pong-ramNoFrameskip-v4'    : Pong('Pong-ramNoFrameskip-v4'),
@@ -1189,6 +1580,7 @@ name2class = {'Pong-ramNoFrameskip-v4'    : Pong('Pong-ramNoFrameskip-v4'),
               'Boxing-ramNoFrameskip-v4'  : Boxing('Boxing-ramNoFrameskip-v4'),
               'Boxing-ramDeterministic-v4': Boxing('Boxing-ramDeterministic-v4'),
               'Tennis-ramNoFrameskip-v4'  : Tennis('Tennis-ramNoFrameskip-v4'),
+              'TennisNoFrameskip-v4'     : TennisImage('TennisNoFrameskip-v4'),
               'Breakout-ramNoFrameskip-v4': Breakout('Breakout-ramNoFrameskip-v4'),
               'Mario'                     : Mario('SuperMarioBros-1-1-v1'),
               }

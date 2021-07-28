@@ -18,15 +18,15 @@ from behavior import *
 
 class Individual:
 
-    def __init__(self, state_shape, action_dim, goal_dim, epsilon=0.01, lr=0.0005, gamma=0.99, entropy_scale=0.0001,
-                 gae_lambda=1.0, traj_length=10, batch_size=16, neg_scale=1.0, generation=1, CNN=True):
+    def __init__(self, state_shape, action_dim, goal_dim, epsilon=0.01, lr=0.0008, gamma=0.99, entropy_scale=0.0001,
+                 gae_lambda=1.0, traj_length=10, batch_size=16, neg_scale=1.0, generation=1, CNN=False):
 
         if CNN :
             self.pi = AC_CNN(state_shape, action_dim, epsilon, lr, gamma, entropy_scale, gae_lambda,
                          traj_length, batch_size, neg_scale)
         else:
             self.pi = AC(state_shape, action_dim, epsilon, lr, gamma, entropy_scale, gae_lambda,
-                     traj_length, batch_size, neg_scale)
+                     traj_length, batch_size, neg_scale, split=False)
         self.reward_weight = np.random.uniform(0.1, 0.5, size=(goal_dim,))
 
         dummy_obs = np.ones(state_shape, dtype=np.float32)

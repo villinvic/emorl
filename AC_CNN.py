@@ -101,11 +101,12 @@ class CategoricalActor(tf.keras.Model):
         self.state_ndim = len(state_shape)
         self.epsilon = tf.Variable(epsilon, name="Actor_epsilon", trainable=False, dtype=tf.float32)
 
-        self.l1 = Conv2D(filters=16, kernel_size=4, strides=4, activation='relu')
-        self.l2 = Conv2D(filters=32, kernel_size=2, strides=2, activation='relu')
+        self.l1 = Conv2D(filters=32, kernel_size=8, strides=4, activation='relu')
+        self.l2 = Conv2D(filters=64, kernel_size=4, strides=2, activation='relu')
+        self.l2_2 = Conv2D(filters=64, kernel_size=3, strides=1, activation='relu')
         self.flatten = TimeDistributed(Flatten())
-        self.l3_v = Dense(32, dtype='float32', name="dense_p", activation="relu")
-        self.l3_p = Dense(32, dtype='float32', name="dense_v", activation="relu")
+        self.l3_v = Dense(128, dtype='float32', name="dense_p", activation="relu")
+        self.l3_p = Dense(128, dtype='float32', name="dense_v", activation="relu")
 
         self.prob = Dense(action_dim, dtype='float32', name="prob", activation="softmax")
 
@@ -125,7 +126,7 @@ class CategoricalActor(tf.keras.Model):
 
     def _compute_feature(self, states):
         features = self.l1(states)
-        features = self.l2(features)
+        features = self.l2_2(self.l2(features))
         features = self.flatten(features)
         return features
 
