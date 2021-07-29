@@ -416,7 +416,7 @@ class EvolutionServer:
         for individual in trained:
             self.player.set_weights(individual['weights'])
             individual['eval'] = self.util.eval(self.player,
-                                                self.env,
+                                                self.envs[0],
                                                 self.action_dim,
                                                 self.frame_skip,
                                                 self.min_eval,
