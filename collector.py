@@ -107,7 +107,7 @@ class Collector:
                                                env=environ)
         environ['CUDA_VISIBLE_DEVICES'] = "-1"
 
-    def tournament(self, k=1, key=0):
+    def tournament(self, k=2, key=0):
         p = np.random.choice(np.arange(self.population.size), (k,), replace=False)
         best_index = p[0]
         best_score = -np.inf
