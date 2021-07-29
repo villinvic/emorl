@@ -679,7 +679,7 @@ class Tennis(EnvUtil):
         self.indexes = np.array([value for value in self['ram_locations'].values()], dtype=np.int32)
         self.reversed_indexes = np.array([26, 24, 70, 16, 15, 27, 25, 69, 17], dtype=np.int32)
         self.centers = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
-        self.scales = np.array([0.007, 0.007, 0.2, 0.007, 0.007, 0.007, 0.007, 0.2, 0.025], dtype=np.float32)
+        self.scales = np.array([0.01, 0.01, 0.2, 0.01, 0.01, 0.01, 0.01, 0.2, 0.025], dtype=np.float32)
         self.state_dim = len(self.indexes) + 2
         self.full_state_dim = self.state_dim * 4
         self.y_bounds = (0.91, 1.48)
@@ -717,7 +717,7 @@ class Tennis(EnvUtil):
             Objective('mobility', domain=(0., 0.06)),
         ]
 
-        self.action_space_dim = 18
+        self.action_space_dim = 9
         self.goal_dim = len(self['objectives'])
 
         self['problems']['SOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][0])
@@ -761,13 +761,14 @@ class Tennis(EnvUtil):
         self.ball_min = [np.inf, np.inf]
 
     def action_to_id(self, action_id):
-        return action_id
-        """
-        if self.side:
-            return action_id
+        # ['NOOP', 'FIRE', 'UP', 'RIGHT', 'LEFT', 'DOWN', 'UPRIGHT', 'UPLEFT', 'DOWNRIGHT', 'DOWNLEFT', 'UPFIRE',
+        # 'RIGHTFIRE', 'LEFTFIRE', 'DOWNFIRE', 'UPRIGHTFIRE', 'UPLEFTFIRE', 'DOWNRIGHTFIRE', 'DOWNLEFTFIRE']
+        if action_id > 1:
+            action_id += 8
         else:
-            return self.opposite_action_space[action_id]
-        """
+            action_id = 0
+
+        return action_id
 
     def preprocess(self, obs):
 
@@ -781,7 +782,7 @@ class Tennis(EnvUtil):
         return np.concatenate([(obs[indexes] - self.centers) * self.scales, [np.float32(self.side), distance_from_ball]])
 
     def distance_from_ball(self, obs):
-        return np.sqrt((obs[3]-obs[5])**2+(obs[4]-obs[6])**2) * 0.6
+        return np.sqrt((obs[3]-obs[5])**2+(obs[4]-obs[6])**2) * 0.9
 
     def is_back(self, obs):
         #print(np.sqrt((obs[5]-obs[3])**2+(obs[6]-obs[4])**2))
@@ -802,7 +803,7 @@ class Tennis(EnvUtil):
 
     def distance_ran(self, obs, obs_):
         d = np.sqrt((obs[1] - obs_[1])**2 + (obs[0] - obs_[0])**2)
-        if d > 20 * 0.007:
+        if d > 20 * 0.01:
             d = 0
         return d
 
@@ -852,7 +853,7 @@ class Tennis(EnvUtil):
         d1 = preprocessed_obs[4+self.state_dim] - preprocessed_obs[4]
         d2 = preprocessed_obs[4-self.state_dim*2] - preprocessed_obs[4-self.state_dim*3]
         d2x = preprocessed_obs[3-self.state_dim*2] - preprocessed_obs[3-self.state_dim*3]
-        if abs(d2)+abs(d2x) > 0.1 :
+        if abs(d2)+abs(d2x) > 0.12 or abs(d2)+abs(d2x) < 1e-6:
             return False
 
         d = d1 * d2
@@ -975,12 +976,13 @@ class Tennis(EnvUtil):
 
     def play(self, player: Individual,
              env,
-             batch_size,
+             batch_index,
              traj_length,
              frame_skip,
              trajectory,
              action_dim,
-             observation=None):
+             observation=None,
+             gpu=-1):
 
         actions = [0] * action_dim
         force_reset = False
@@ -992,54 +994,55 @@ class Tennis(EnvUtil):
             observation = self.preprocess(observation)
             observation = np.concatenate([observation, observation, observation, observation])
 
-        for batch_index in range(batch_size):
-            for frame_count in range(traj_length):
-                action = player.pi.policy.get_action(observation)
-                actions[action] += 1
-                reward = 0
+        for frame_count in range(traj_length):
+            action = player.pi.policy.get_action(observation, gpu)
+            actions[action] += 1
+            reward = 0
 
-                #env.render()
-                #time.sleep(0.5)
-                for _ in range(frame_skip):
-                    observation_, rr, done, info = env.step(
-                        self.action_to_id(action))
-                    reward += rr
+            #env.render()
+            #time.sleep(0.5)
+            for _ in range(frame_skip):
+                observation_, rr, done, info = env.step(
+                    self.action_to_id(action))
+                reward += rr
 
-                # print(observation_)
-                self.swap_court(observation_)
-                punish = 0
-                if reward == 0:
-                    if abs(observation[3]-observation[3+3*self.state_dim])<1e-4 and\
-                            abs(observation[4]-observation[4+3*self.state_dim])<1e-4 :
-                        self.frames_since_point += 1
-                        if self.frames_since_point > 300//frame_skip:
-                            punish -= 1.5
-                            force_reset = True
-                else:
-                    self.frames_since_point = 0
+            # print(observation_)
+            self.swap_court(observation_)
+            punish = 0
+            if reward == 0:
+                if abs(observation[3]-observation[3+3*self.state_dim])<1e-4 and\
+                        abs(observation[4]-observation[4+3*self.state_dim])<1e-4 :
+                    self.frames_since_point += 1
+                    if self.frames_since_point > 200//frame_skip:
+                        punish -= 5
+                        force_reset = True
+            else:
+                self.frames_since_point = 0
 
-                observation_ = self.preprocess(observation_)
-                # win = self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
-                # front = np.clip(self.proximity_to_front(observation_) - 0.25, 0, 1)
-                back = self.proximity_to_back(observation_)
+            observation_ = self.preprocess(observation_)
+            # win = self.win(observation_, observation[len(observation) * 3 // 4:]) * 100
+            # front = np.clip(self.proximity_to_front(observation_) - 0.25, 0, 1)
+            back = self.proximity_to_back(observation_)
 
-                trajectory['state'][batch_index, frame_count] = observation
-                trajectory['action'][batch_index, frame_count] = action
-                trajectory['rew'][batch_index, frame_count] = 10 * reward * player.reward_weight[0] + punish
-                                                              #-0.5 * front * player.reward_weight[2]
+            trajectory['state'][batch_index, frame_count] = observation
+            trajectory['action'][batch_index, frame_count] = action
+            trajectory['rew'][batch_index, frame_count] = reward * player.reward_weight[0] + punish
+                                                          #-0.5 * front * player.reward_weight[2]
 
-                trajectory['base_rew'][batch_index, frame_count] = reward
+            trajectory['base_rew'][batch_index, frame_count] = reward
 
-                if done or force_reset:
-                    force_reset = False
-                    self.frames_since_point = 0
-                    observation = self.preprocess(env.reset())
-                    observation = np.concatenate([observation, observation, observation, observation])
-                else:
-                    observation = np.concatenate([observation[len(observation) // 4:], observation_])
-                    trajectory['rew'][batch_index, frame_count] +=\
-                        self.aim_quality(observation) * np.float32(self.is_returning(observation)) * player.reward_weight[1] \
-                        + (1 + back) * self.self_dy(observation) * player.reward_weight[2]
+            if done or force_reset:
+                force_reset = False
+                self.frames_since_point = 0
+                observation = self.preprocess(env.reset())
+                observation = np.concatenate([observation, observation, observation, observation])
+            else:
+                observation = np.concatenate([observation[len(observation) // 4:], observation_])
+                trajectory['rew'][batch_index, frame_count] +=\
+                    self.aim_quality(observation) * np.float32(self.is_returning(observation)) * player.reward_weight[1] \
+                    + (1 + back) * self.self_dy(observation) * player.reward_weight[2]
+
+        print(actions)
 
         return observation
 

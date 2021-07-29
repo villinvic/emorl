@@ -18,7 +18,10 @@ class RLtest:
         self.batch = batch
         self.plot_freq = plot_freq
 
-        self.env = gym.make(env_id)
+
+        self.N_ENVS = 10
+        self.envs = [gym.make(env_id) for _ in range(self.N_ENVS)]
+        self.observations = [None] * self.N_ENVS
         self.util = name2class[env_id]
         self.state_shape = (self.util.state_dim * 4,)
         self.action_dim = self.util.action_space_dim
@@ -52,19 +55,22 @@ class RLtest:
 
     def train_loop(self):
         c = 1
-        obs = None
         try:
-            self.player.reward_weight[:] = 0.5, 1, 0.
+            self.player.reward_weight[:] = 0.5, 0.3, 0.
 
             while True:
-                obs = self.util.play(self.player,
-                                     self.env,
-                                     self.batch,
-                                     self.traj,
-                                     4,
-                                     self.trajectory,
-                                     self.action_dim,
-                                     observation=obs)
+
+                for batch_index in range(self.batch):
+                    env_id = np.random.randint(0, self.N_ENVS)
+                    self.observations[env_id] = self.util.play(self.player,
+                                         self.envs[env_id],
+                                         batch_index,
+                                         self.traj,
+                                         4,
+                                         self.trajectory,
+                                         self.action_dim,
+                                         observation=self.observations[env_id],
+                                         gpu=0)
                 self.reward[self.plot_index, 0] = np.mean(self.trajectory['rew'])
                 self.reward[self.plot_index, 1] = np.mean(self.trajectory['base_rew'])
                 self.plot_index += 1
@@ -79,7 +85,7 @@ class RLtest:
         try:
             while True:
                 r = self.util.eval(self.player,
-                                     self.env,
+                                     self.envs[0],
                                      self.action_dim,
                                      4,
                                      min_frame=1,
@@ -92,7 +98,7 @@ class RLtest:
 
         print('done')
 
-def TEST(alpha=0.0005, gamma=0.99, traj=20, batch=16):
+def TEST(alpha=0.0005, gamma=0.97, traj=32, batch=8):
     tester = RLtest(alpha, gamma, traj, batch)
     tester.train_loop()
 
