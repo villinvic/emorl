@@ -995,7 +995,7 @@ class Tennis(EnvUtil):
             observation = np.concatenate([observation, observation, observation, observation])
 
         for frame_count in range(traj_length):
-            action = player.pi.policy.get_action(observation, gpu)
+            action = player.pi.policy.get_action(observation, gpu=gpu)
             actions[action] += 1
             reward = 0
 
@@ -1041,8 +1041,6 @@ class Tennis(EnvUtil):
                 trajectory['rew'][batch_index, frame_count] +=\
                     self.aim_quality(observation) * np.float32(self.is_returning(observation)) * player.reward_weight[1] \
                     + (1 + back) * self.self_dy(observation) * player.reward_weight[2]
-
-        print(actions)
 
         return observation
 

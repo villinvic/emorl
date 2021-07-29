@@ -31,7 +31,7 @@ from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 
 class EvolutionServer:
 
-    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=20, batch_size=16, max_train=10,
+    def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=32, batch_size=8, max_train=10,
                  early_stop=100, round_length=300, min_eval=1, min_games=2, subprocess=True, mutation_chance=0.5, mutation_rate=1.0, crossover_chance=0.8):
 
         if collector_ip is None:
@@ -49,7 +49,8 @@ class EvolutionServer:
             tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
         #    tf.config.experimental.set_virtual_device_configuration(physical_devices[0], [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=4096)])
 
-        self.env = gym.make(env_id)
+        self.envs = [gym.make(env_id) for _ in range(5)]
+        self.obs = [None] * 5
         self.util = name2class[env_id]
         self.action_dim = self.util.action_space_dim
         self.state_shape = (self.util.full_state_dim,)
@@ -177,7 +178,7 @@ class EvolutionServer:
             q1 = deepcopy(p1)
             # q2 = deepcopy(p1)
             if np.random.random() < self.crossover_chance:
-                s = 41235 # 201464 #8900 #25 * 64 + 64*65 + 65 * 6 + 65 * 1  # 5,447 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
+                s = 11850 # 201464 #8900 #25 * 64 + 64*65 + 65 * 6 + 65 * 1  # 5,447 33927 128×128 × 2 +128×2 + 128×6 + 6 + 128 + 1
                 c = 0
                 point = np.random.randint(0, s)
                 for j in range(len(p1['pi'])):
@@ -364,7 +365,6 @@ class EvolutionServer:
         trained = np.empty_like(offspring)
         for i, q in enumerate(offspring):
             self.player.set_weights(q) # sets nn and r weights
-            obs = None
             # x = np.arange(self.n_play)
             # y = np.empty((self.n_play,))
             # y = []
@@ -375,15 +375,17 @@ class EvolutionServer:
             no_improvement_counter = 0
             # self.player.pi.reset_optim()
             while time() - start_time < self.max_train * 60:
-                obs = self.util.play(self.player,
-                                     self.env,
-                                     self.batch_size,
-                                     self.traj_length,
-                                     self.frame_skip,
-                                     self.trajectory,
-                                     self.action_dim,
-                                     obs,
-                                     self.gpu)
+                for batch_index in range(self.batch_size):
+                    env_index = np.random.randint(0, 5)
+                    self.obs[env_index] = self.util.play(self.player,
+                                         self.envs[env_index],
+                                         batch_index,
+                                         self.traj_length,
+                                         self.frame_skip,
+                                         self.trajectory,
+                                         self.action_dim,
+                                         self.obs[env_index],
+                                         self.gpu)
 
                 self.player.pi.train(self.trajectory['state'], self.trajectory['action'][:, :-1], self.trajectory['rew'][:, :-1], self.gpu)
                 training_step += 1
