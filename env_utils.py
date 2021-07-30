@@ -715,7 +715,7 @@ class Tennis(EnvUtil):
         self['objectives'] = [
             Objective('game_score'),
             Objective('aim_quality', domain=(0., 0.55)),
-            Objective('mobility', domain=(0., 0.06)),
+            Objective('mobility', domain=(0., 0.07)),
         ]
 
         self.action_space_dim = 9
@@ -809,7 +809,12 @@ class Tennis(EnvUtil):
         return d
 
     def self_dy(self, full_obs):
-        return np.abs(full_obs[6] - full_obs[-self.state_dim+6])
+        dx = np.abs(full_obs[5] - full_obs[-self.state_dim+5])
+        dy = np.abs(full_obs[6] - full_obs[-self.state_dim+6])
+        d = dx+dy
+        if d > 30 * 0.01:
+            print('too much')
+        return dy
 
     def aim_quality(self, full_obs):
         ball_x = full_obs[-self.state_dim+3]
@@ -885,7 +890,7 @@ class Tennis(EnvUtil):
              min_frame,
              min_games,
              render=False,
-             slow_factor=0.017,
+             slow_factor=0.04,
              ):
 
         r = {
