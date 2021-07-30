@@ -7,6 +7,7 @@ import tensorflow as tf
 from PIL import Image
 import gym_super_mario_bros
 
+
 class Objective:
     def __init__(self, name, nature=1, domain=(0., 1.)):
         self.name = name
@@ -927,6 +928,12 @@ class Tennis(EnvUtil):
                         self.action_to_id(action))
                     reward += rr
 
+                while np.max(np.abs(observation[-self.state_dim:] - self.preprocess(observation_))) < 1e-5:
+                    for _ in range(frame_skip):
+                        observation_, rr, done, info = env.step(
+                            self.action_to_id(action))
+                        reward += rr
+
                 if reward == 0:
                     if abs(observation[3]-observation[3+3*self.state_dim])<1e-4 and\
                             abs(observation[4]-observation[4+3*self.state_dim])<1e-4 :
@@ -1005,6 +1012,13 @@ class Tennis(EnvUtil):
                 observation_, rr, done, info = env.step(
                     self.action_to_id(action))
                 reward += rr
+            while np.max(np.abs(observation[-self.state_dim:] - self.preprocess(observation_))) < 1e-5:
+                for _ in range(frame_skip):
+                    observation_, rr, done, info = env.step(
+                        self.action_to_id(action))
+                    reward += rr
+                #print(np.max(np.abs(observation[-self.state_dim:] - self.preprocess(observation_))) < 1e-5,
+                #      np.max(np.abs(observation[-self.state_dim:] - self.preprocess(observation_))))
 
             # print(observation_)
             self.swap_court(observation_)
@@ -1040,7 +1054,7 @@ class Tennis(EnvUtil):
                 observation = np.concatenate([observation[len(observation) // 4:], observation_])
                 trajectory['rew'][batch_index, frame_count] +=\
                     self.aim_quality(observation) * np.float32(self.is_returning(observation)) * player.reward_weight[1] \
-                    + (1 + back) * self.self_dy(observation) * player.reward_weight[2]
+                    + (1 + back) * self.self_dy(observation) * player.reward_weight[2] * 0.1
 
         return observation
 
@@ -1474,6 +1488,141 @@ class Mario(EnvUtil):
         return observation
 
 
+class Lander(EnvUtil):
+    def __init__(self, name):
+        super(Lander, self).__init__(name)
+
+        self['objectives'] = [
+            Objective('game_reward', domain=(0., 250.)),
+            Objective('time_left', nature=1, domain=(0., 100)),
+            Objective('game_score', nature=1, domain=(0., 10000.)),
+        ]
+
+        self.action_space_dim = 4
+
+        self.state_dim = 8
+        self.full_state_dim = (self.state_dim*4,)
+        self.goal_dim = len(self['objectives'])
+
+        self['problems']['SOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][0])
+        self['problems']['SOP2']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
+                                                                                   self['objectives'][2],
+                                                                                   sum_=True)
+
+        self['problems']['MOP1']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
+                                                                                   self['objectives'][2])
+
+        self['problems']['MOP2']['behavior_functions'] = self.build_objective_func(self['objectives'][1],
+                                                                                   self['objectives'][2],
+                                                                                   prioritized=self['objectives'][
+                                                                                       0])
+        self['problems']['MOP2']['complexity'] = 2
+
+        self['problems']['MOP3']['behavior_functions'] = self.build_objective_func(self['objectives'][0],
+                                                                                   self['objectives'][1],
+                                                                                   self['objectives'][2])
+
+
+    def eval(self, player: Individual,
+             env,
+             action_dim,
+             frame_skip,
+             min_frame,
+             min_games,
+             render=False,
+             slow_factor=0.04,
+             ):
+
+        r = {
+            'game_reward'   : 0.0,
+            'avg_length'    : 0.,
+            'total_punition': 0.0,
+            'game_score'      : 0.0,
+            'entropy'       : 0.0,
+            'eval_length'   : 0,
+            'best_shot'         : 0.,
+            'n_hits'          : 0.,
+        }
+        frame_count = 0.
+        n_games = 0
+        actions = [0] * env.action_space.n
+        dist = np.zeros((action_dim,), dtype=np.float32)
+
+        while frame_count < min_frame or n_games < min_games:
+            done = False
+            observation = env.reset()
+
+            observation = np.concatenate([observation, observation,observation, observation])
+            while not done or frame_count < min_frame:
+                action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
+                dist += dist_
+                actions[action] += 1
+                reward = 0
+                if render:
+                    env.render()
+                    time.sleep(slow_factor)
+
+                for _ in range(frame_skip):
+                    observation_, rr, done, info = env.step(action)
+                    reward += rr
+                    if done:
+                        break
+
+                observation = np.concatenate([observation[len(observation) // 4:], observation_])
+
+                r['game_reward'] += reward
+                if reward < 0:
+                    r['total_punition'] += reward
+
+
+                frame_count += 1
+            n_games += 1
+
+        return r
+
+    def play(self, player: Individual,
+             env,
+             batch_index,
+             traj_length,
+             frame_skip,
+             trajectory,
+             action_dim,
+             observation=None,
+             gpu=-1):
+
+        actions = [0] * action_dim
+
+        if observation is None:
+            observation = env.reset()
+            observation = np.concatenate([observation, observation, observation, observation])
+
+        for frame_count in range(traj_length):
+            action = player.pi.policy.get_action(observation, gpu=gpu)
+            actions[action] += 1
+
+            reward = 0
+
+            for _ in range(frame_skip):
+                observation_, rr, done, info = env.step(action)
+                reward += rr
+                if done:
+                    break
+
+            trajectory['state'][batch_index, frame_count] = observation
+            trajectory['action'][batch_index, frame_count] = action
+
+            trajectory['base_rew'][batch_index, frame_count] = reward
+
+            if done:
+                observation = env.reset()
+                observation = np.concatenate([observation, observation, observation, observation])
+            else:
+                observation = np.concatenate([observation[len(observation) // 4:], observation_])
+                trajectory['rew'][batch_index, frame_count] = reward* player.reward_weight[0] \
+
+        return observation
+
+
 class SkipEnv(gym.Wrapper):
     def __init__(self, env=None, skip=4, render=False):
         super(SkipEnv, self).__init__(env)
@@ -1584,4 +1733,5 @@ name2class = {'Pong-ramNoFrameskip-v4'    : Pong('Pong-ramNoFrameskip-v4'),
               'TennisNoFrameskip-v4'     : TennisImage('TennisNoFrameskip-v4'),
               'Breakout-ramNoFrameskip-v4': Breakout('Breakout-ramNoFrameskip-v4'),
               'Mario'                     : Mario('SuperMarioBros-1-1-v1'),
+              'test'                      : Lander('LunarLander-v2')
               }

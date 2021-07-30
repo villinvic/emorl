@@ -109,15 +109,15 @@ class Collector:
 
     def tournament(self, k=2, key=0):
         p = np.random.choice(np.arange(self.population.size), (k,), replace=False)
-        best_index = p[0]
-        best_score = -np.inf
-        for i in p:
-            score = self.population.individuals[i].behavior_stats[self.util['objectives'][key].name]
-            if score > best_score:
-                best_index = i
-                best_score = score
+        #best_index = p[0]
+        #best_score = -np.inf
+        #for i in p:
+        #    score = self.population.individuals[i].behavior_stats[self.util['objectives'][key].name]
+        #    if score > best_score:
+        #        best_index = i
+        #        best_score = score
         # print('tournament:', best_index)
-        return best_index
+        return np.min(p)
 
     def send_mating(self):
         p = [None] * 2

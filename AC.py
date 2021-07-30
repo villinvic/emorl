@@ -95,7 +95,7 @@ class CategoricalActor(tf.keras.Model):
         self.state_ndim = len(state_shape)
         self.epsilon = tf.Variable(epsilon, name="Actor_epsilon", trainable=False, dtype=tf.float32)
 
-        self.l1 = Dense(64, activation='relu', dtype='float32', name="critic_L1")
+        self.l1 = Dense(128, activation='relu', dtype='float32', name="critic_L1")
         self.l2_p = Dense(64, activation='relu', dtype='float32', name="L2_1")
         self.l2_v = Dense(64, activation='relu', dtype='float32', name="L2_2")
 

@@ -20,12 +20,12 @@ class RLtest:
 
 
         self.N_ENVS = 10
-        self.envs = [gym.make(env_id) for _ in range(self.N_ENVS)]
-        self.observations = [None] * self.N_ENVS
         self.util = name2class[env_id]
-        self.state_shape = (self.util.state_dim * 4,)
+        self.envs = [gym.make(self.util.name) for _ in range(self.N_ENVS)]
+        self.observations = [None] * self.N_ENVS
+        self.state_shape = (self.util.full_state_dim,)
         self.action_dim = self.util.action_space_dim
-        self.player = Individual(self.state_shape, self.action_dim, 3, 0.01, alpha, gamma, 0.0001, 1, traj, batch, 1)
+        self.player = Individual(self.state_shape, self.action_dim, 3, 0.01, alpha, gamma, 0.0005, 1, traj, batch, 1)
 
         self.trajectory = {
             'state': np.zeros((batch, traj) + self.state_shape, dtype=np.float32),
@@ -56,7 +56,7 @@ class RLtest:
     def train_loop(self):
         c = 1
         try:
-            self.player.reward_weight[:] = 0.5, 0.3, 0.
+            self.player.reward_weight[:] = 1., 0.2, 0.1
 
             while True:
 
@@ -66,7 +66,7 @@ class RLtest:
                                          self.envs[env_id],
                                          batch_index,
                                          self.traj,
-                                         4,
+                                         5,
                                          self.trajectory,
                                          self.action_dim,
                                          observation=self.observations[env_id],
@@ -87,7 +87,7 @@ class RLtest:
                 r = self.util.eval(self.player,
                                      self.envs[0],
                                      self.action_dim,
-                                     4,
+                                     5,
                                      min_frame=1,
                                      min_games=1,
                                      render=True)
@@ -98,7 +98,7 @@ class RLtest:
 
         print('done')
 
-def TEST(alpha=0.0005, gamma=0.97, traj=32, batch=8):
+def TEST(alpha=0.001, gamma=0.98, traj=20, batch=16):
     tester = RLtest(alpha, gamma, traj, batch)
     tester.train_loop()
 
