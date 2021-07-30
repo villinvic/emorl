@@ -32,7 +32,7 @@ from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 class EvolutionServer:
 
     def __init__(self, ID, env_id='Pong-ram-v0', collector_ip=None, psw="", traj_length=32, batch_size=8, max_train=10,
-                 early_stop=100, round_length=300, min_eval=1, min_games=2, subprocess=True, mutation_chance=0.5, mutation_rate=1.0, crossover_chance=0.8):
+                 early_stop=100, round_length=300, max_eval=100000, min_games=2, subprocess=True, mutation_chance=0.5, mutation_rate=1.0, crossover_chance=0.8):
 
         if collector_ip is None:
             self.ip = socket.gethostbyname(socket.gethostname())
@@ -93,7 +93,7 @@ class EvolutionServer:
         self.early_stop = early_stop
         self.round_length = round_length
         self.batch_size = batch_size
-        self.min_eval = min_eval
+        self.max_eval = max_eval
         self.min_games = min_games
 
         self.trajectory = {
@@ -419,7 +419,7 @@ class EvolutionServer:
                                                 self.envs[0],
                                                 self.action_dim,
                                                 self.frame_skip,
-                                                self.min_eval,
+                                                self.max_eval,
                                                 self.min_games)
 
             print(individual['eval'])

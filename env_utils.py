@@ -714,8 +714,8 @@ class Tennis(EnvUtil):
 
         self['objectives'] = [
             Objective('game_score'),
-            Objective('aim_quality', domain=(0., 0.55)),
-            Objective('mobility', domain=(0., 0.07)),
+            Objective('aim_quality', domain=(0., 0.6)),
+            Objective('mobility', domain=(0., 0.09)),
         ]
 
         self.action_space_dim = 9
@@ -887,7 +887,7 @@ class Tennis(EnvUtil):
              env,
              action_dim,
              frame_skip,
-             min_frame,
+             max_frames,
              min_games,
              render=False,
              slow_factor=0.04,
@@ -911,7 +911,7 @@ class Tennis(EnvUtil):
         dist = np.zeros((action_dim,), dtype=np.float32)
 
 
-        while frame_count < min_frame or n_games < min_games:
+        while  n_games < min_games:
             done = False
             observation = env.reset()
             self.frames_since_point = 0
@@ -919,7 +919,7 @@ class Tennis(EnvUtil):
             self.swap_court(observation)
             observation = self.preprocess(observation)
             observation = np.concatenate([observation, observation, observation, observation])
-            while not done or frame_count < min_frame:
+            while not done and frame_count < max_frames:
                 action, dist_ = player.pi.policy.get_action(observation, return_dist=True, eval=True)
                 dist += dist_
                 actions[action] += 1
@@ -973,6 +973,7 @@ class Tennis(EnvUtil):
 
 
                 frame_count += 1
+
             n_games += 1
 
         print(actions)
