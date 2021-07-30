@@ -813,7 +813,7 @@ class Tennis(EnvUtil):
         dy = np.abs(full_obs[6] - full_obs[-self.state_dim+6])
         d = dx+dy
         if d > 30 * 0.01:
-            print('too much')
+            dy = 0
         return dy
 
     def aim_quality(self, full_obs):
