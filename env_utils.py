@@ -932,12 +932,16 @@ class Tennis(EnvUtil):
                     observation_, rr, done, info = env.step(
                         self.action_to_id(action))
                     reward += rr
+                    if done:
+                        break
 
-                while np.max(np.abs(observation[-self.state_dim:] - self.preprocess(observation_))) < 1e-5:
+                while not done and np.max(np.abs(observation[-self.state_dim:] - self.preprocess(observation_))) < 1e-5:
                     for _ in range(frame_skip):
                         observation_, rr, done, info = env.step(
                             self.action_to_id(action))
                         reward += rr
+                        if done:
+                            break
 
                 if reward == 0:
                     if abs(observation[3]-observation[3+3*self.state_dim])<1e-4 and\
