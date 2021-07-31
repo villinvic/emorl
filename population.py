@@ -18,7 +18,7 @@ from behavior import *
 
 class Individual:
 
-    def __init__(self, state_shape, action_dim, goal_dim, epsilon=0.01, lr=0.0005, gamma=0.97, entropy_scale=0.0001,
+    def __init__(self, state_shape, action_dim, goal_dim, epsilon=0.01, lr=0.0005, gamma=0.98, entropy_scale=0.0005,
                  gae_lambda=1.0, traj_length=10, batch_size=16, neg_scale=1.0, generation=1, CNN=False):
 
         if CNN :
