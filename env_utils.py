@@ -1018,11 +1018,16 @@ class Tennis(EnvUtil):
                 observation_, rr, done, info = env.step(
                     self.action_to_id(action))
                 reward += rr
-            while np.max(np.abs(observation[-self.state_dim:] - self.preprocess(observation_))) < 1e-5:
+                if done:
+                    break
+            while not done and np.max(np.abs(observation[-self.state_dim:] - self.preprocess(observation_))) < 1e-5:
                 for _ in range(frame_skip):
                     observation_, rr, done, info = env.step(
                         self.action_to_id(action))
                     reward += rr
+                    if done:
+                        break
+
                 #print(np.max(np.abs(observation[-self.state_dim:] - self.preprocess(observation_))) < 1e-5,
                 #      np.max(np.abs(observation[-self.state_dim:] - self.preprocess(observation_))))
 
