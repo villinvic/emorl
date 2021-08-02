@@ -66,7 +66,7 @@ class RLtest:
                                          self.envs[env_id],
                                          batch_index,
                                          self.traj,
-                                         5,
+                                         4,
                                          self.trajectory,
                                          self.action_dim,
                                          observation=self.observations[env_id],
@@ -87,7 +87,7 @@ class RLtest:
                 r = self.util.eval(self.player,
                                      self.envs[0],
                                      self.action_dim,
-                                     5,
+                                     4,
                                      min_frame=1,
                                      min_games=1,
                                      render=True)

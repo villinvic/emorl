@@ -986,6 +986,7 @@ class Tennis(EnvUtil):
                 r['game_reward'] += reward
                 if reward < 0:
                     r['total_punition'] += reward
+                    r['aim_quality'] += reward * 0.5
 
 
                 frame_count += 1
@@ -998,6 +999,7 @@ class Tennis(EnvUtil):
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
+        np.clip(r['aim_quality'], 0, np.inf, out=r['aim_quality'])
         r['aim_quality'] /= np.clip(r['n_shoots'], 48*n_games, np.inf)
         r['mobility'] /= frame_count
 
