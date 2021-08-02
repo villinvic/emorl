@@ -986,7 +986,7 @@ class Tennis(EnvUtil):
                 r['game_reward'] += reward
                 if reward < 0:
                     r['total_punition'] += reward
-                    r['aim_quality'] += reward * 0.2
+                    r['aim_quality'] += reward * 0.05
 
 
                 frame_count += 1
