@@ -843,7 +843,7 @@ class Tennis(EnvUtil):
         #deviation = np.tan(angle) * scale
 
         #quality = np.clip(np.abs(ball_x + deviation - opp_x), 0, 1) + 0.2
-        print(quality)
+        # print(quality)
 
         return quality
 
@@ -1079,8 +1079,12 @@ class Tennis(EnvUtil):
                 observation = np.concatenate([observation, observation, observation, observation])
             else:
                 observation = np.concatenate([observation[len(observation) // 4:], observation_])
+                if self.is_returning(observation):
+                    aim_quality = self.aim_quality(observation)
+                else:
+                    aim_quality = 0
                 trajectory['rew'][batch_index, frame_count] +=\
-                    self.aim_quality(observation) * np.float32(self.is_returning(observation)) * player.reward_weight[1] \
+                    aim_quality * player.reward_weight[1] \
                     + (1 + 2*back) * self.self_dy(observation) * player.reward_weight[2] * 0.03
 
         return observation
