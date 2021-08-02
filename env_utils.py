@@ -712,6 +712,8 @@ class Tennis(EnvUtil):
         self.points = np.array([71, 72], dtype=np.int32)
         self.top_side_points = np.array([0, 3, 4, 7, 8, 11])
 
+        self.max_quality = 0
+
         self['objectives'] = [
             Objective('game_score'),
             Objective('aim_quality', domain=(0., 0.6)),
@@ -831,7 +833,7 @@ class Tennis(EnvUtil):
         angle_2 = np.angle(vector_p2p)
         #print(full_obs[-self.state_dim+1]-full_obs[-self.state_dim+6])
 
-        quality = (angle-angle_2) ** 2 * 2
+        quality = ((angle-angle_2) ** 2 + 0.1)* 2
         if np.abs(dplayer_y) < 0.35:
             quality *= 0.2
 
@@ -843,7 +845,6 @@ class Tennis(EnvUtil):
         #deviation = np.tan(angle) * scale
 
         #quality = np.clip(np.abs(ball_x + deviation - opp_x), 0, 1) + 0.2
-        # print(quality)
 
         return quality
 
