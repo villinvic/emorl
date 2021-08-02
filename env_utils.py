@@ -819,19 +819,31 @@ class Tennis(EnvUtil):
     def aim_quality(self, full_obs):
         ball_x = full_obs[-self.state_dim+3]
         ball_y = full_obs[-self.state_dim+4]
+        dplayer_y = full_obs[-self.state_dim+1]-full_obs[-self.state_dim+6]
         #print('1', ball_x, ball_y)
         #print('2', full_obs[-2*self.state_dim+3], full_obs[-2*self.state_dim+4])
         vector = complex(ball_y - full_obs[-2*self.state_dim+4], ball_x - full_obs[-2*self.state_dim+3])
+        vector_p2p = complex(dplayer_y, full_obs[-self.state_dim+0]-full_obs[-self.state_dim+5])
+        if self.side :
+            vector *= -1
+            vector_p2p *= -1
         angle = np.angle(vector)
+        angle_2 = np.angle(vector_p2p)
+        #print(full_obs[-self.state_dim+1]-full_obs[-self.state_dim+6])
 
-        opp_x = full_obs[-self.state_dim]
-        opp_y = full_obs[-self.state_dim+1]
-        dY = opp_y - ball_y
+        quality = (angle-angle_2) ** 2 * 2
+        if np.abs(dplayer_y) < 0.35:
+            quality *= 0.2
 
-        scale = (0.5 + 0.2 * np.abs(dY)) * np.sign(dY)
-        deviation = np.tan(angle) * scale
+        #opp_x = full_obs[-self.state_dim]
+        #opp_y = full_obs[-self.state_dim+1]
+        #dY = opp_y - ball_y
 
-        quality = np.clip(np.abs(ball_x + deviation - opp_x), 0, 1) + 0.2
+        #scale = (0.5 + 0.2 * np.abs(dY)) * np.sign(dY)
+        #deviation = np.tan(angle) * scale
+
+        #quality = np.clip(np.abs(ball_x + deviation - opp_x), 0, 1) + 0.2
+        print(quality)
 
         return quality
 
@@ -986,7 +998,7 @@ class Tennis(EnvUtil):
         dist /= float(frame_count)
         r['entropy'] = -np.sum(np.log(dist + 1e-8) * dist)
         r['eval_length'] = frame_count
-        r['aim_quality'] /= np.clip(r['n_shoots'], 24*n_games, np.inf)
+        r['aim_quality'] /= np.clip(r['n_shoots'], 48*n_games, np.inf)
         r['mobility'] /= frame_count
 
         return r
@@ -1069,7 +1081,7 @@ class Tennis(EnvUtil):
                 observation = np.concatenate([observation[len(observation) // 4:], observation_])
                 trajectory['rew'][batch_index, frame_count] +=\
                     self.aim_quality(observation) * np.float32(self.is_returning(observation)) * player.reward_weight[1] \
-                    + (1 + back) * self.self_dy(observation) * player.reward_weight[2] * 0.1
+                    + (1 + 2*back) * self.self_dy(observation) * player.reward_weight[2] * 0.03
 
         return observation
 
