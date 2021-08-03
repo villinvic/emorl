@@ -833,7 +833,7 @@ class Tennis(EnvUtil):
         angle_2 = np.angle(vector_p2p)
         #print(full_obs[-self.state_dim+1]-full_obs[-self.state_dim+6])
 
-        quality = (angle-angle_2) ** 2 * 2 + 0.1
+        quality = np.clip((angle-angle_2) ** 2 * 2 + 0.1, 0, 2.25)
         if np.abs(dplayer_y) < 0.35:
             quality *= 0.2
 
