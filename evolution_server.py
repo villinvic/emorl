@@ -427,9 +427,10 @@ class EvolutionServer:
     def run(self):
         trained = None
         print('[%d] started' % self.ID)
-        print('[%d] receiving mating' % self.ID)
-        mating = self.recv_mating()
+
         while True:
+            print('[%d] receiving mating' % self.ID)
+            mating = self.recv_mating()
             print('[%d] received all' % self.ID)
             qs = self.crossover(mating)
             print('[%d] crossover ok' % self.ID)
@@ -443,7 +444,7 @@ class EvolutionServer:
 
             self.send_evolved(trained)
             print('[%d] sent evolved' % self.ID)
-            print('[%d] receiving mating' % self.ID)
+
 
 def smooth(y, box_pts):
     box = np.ones(box_pts)/box_pts
