@@ -441,12 +441,9 @@ class EvolutionServer:
             self.evaluate(trained)
             print('[%d] eval ok' % self.ID)
 
-            mating = None
-            while mating is None:
-                self.send_evolved(trained)
-                print('[%d] sent evolved' % self.ID)
-                print('[%d] receiving mating' % self.ID)
-                mating = self.recv_mating()
+            self.send_evolved(trained)
+            print('[%d] sent evolved' % self.ID)
+            print('[%d] receiving mating' % self.ID)
 
 def smooth(y, box_pts):
     box = np.ones(box_pts)/box_pts
