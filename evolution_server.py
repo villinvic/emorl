@@ -77,8 +77,8 @@ class EvolutionServer:
             self.tunneling = (psw != "")
             self.psw = psw
 
-            self.mating_pipe.setsockopt(zmq.RCVTIMEO, 1000 * 60 * 60)
-            self.mating_pipe.setsockopt(zmq.LINGER, 0)
+            #self.mating_pipe.setsockopt(zmq.RCVTIMEO, 1000 * 60 * 60)
+            #self.mating_pipe.setsockopt(zmq.LINGER, 0)
             if self.tunneling:
                 print('tunnel')
                 ssh.tunnel_connection(self.mating_pipe, "tcp://%s:5655" % self.ip, "villinvic@%s" % self.ip, password=psw)
