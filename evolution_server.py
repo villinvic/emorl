@@ -76,8 +76,8 @@ class EvolutionServer:
             self.evolved_pipe = context.socket(zmq.PUSH)
             self.tunneling = (psw != "")
             self.psw = psw
-            #self.mating_pipe.setsockopt(zmq.RCVTIMEO, 1000 * 60 * 60)
-            #self.mating_pipe.setsockopt(zmq.LINGER, 0)
+            self.mating_pipe.setsockopt(zmq.RCVTIMEO, 60)
+            self.mating_pipe.setsockopt(zmq.LINGER, 0)
             if self.tunneling:
                 print('tunnel')
                 ssh.tunnel_connection(self.mating_pipe, "tcp://%s:5655" % self.ip, "villinvic@%s" % self.ip, password=psw)
@@ -115,25 +115,8 @@ class EvolutionServer:
             return self.mating_pipe.recv_pyobj()
         except zmq.ZMQError:
             print('[%d] Receive timeout... reconnecting...')
-
-            if self.tunneling:
-
-                self.mating_pipe.close()
-                self.evolved_pipe.close()
-                c = zmq.Context()
-                self.mating_pipe = c.socket(zmq.PULL)
-                self.evolved_pipe = c.socket(zmq.PUSH)
-
-                self.mating_pipe.setsockopt(zmq.RCVTIMEO, 1000 * 60 * 4)
-                self.mating_pipe.setsockopt(zmq.LINGER, 0)
-                ssh.tunnel_connection(self.mating_pipe, "tcp://%s:5655" % self.ip, "villinvic@%s" % self.ip,
-                                      password=self.psw)
-                ssh.tunnel_connection(self.evolved_pipe, "tcp://%s:5656" % self.ip, "villinvic@%s" % self.ip,
-                                      password=self.psw)
-
-            print('[%d] Reattempting...')
-
             return None
+
 
     def send_evolved(self, q):
         self.evolved_pipe.send_pyobj(q)
@@ -426,7 +409,14 @@ class EvolutionServer:
         print('[%d] started' % self.ID)
         while True:
             print('[%d] receiving mating' % self.ID)
-            mating = self.recv_mating()
+            mating = None
+            c = 0
+            while mating is None:
+                mating = self.recv_mating()
+                c += 1
+                if c > 30:
+                    print('Main proc dead')
+                    exit()
             print('[%d] received all' % self.ID)
             qs = self.crossover(mating)
             print('[%d] crossover ok' % self.ID)
