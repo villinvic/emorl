@@ -76,7 +76,6 @@ class EvolutionServer:
             self.evolved_pipe = context.socket(zmq.PUSH)
             self.tunneling = (psw != "")
             self.psw = psw
-
             #self.mating_pipe.setsockopt(zmq.RCVTIMEO, 1000 * 60 * 60)
             #self.mating_pipe.setsockopt(zmq.LINGER, 0)
             if self.tunneling:
@@ -84,7 +83,6 @@ class EvolutionServer:
                 ssh.tunnel_connection(self.mating_pipe, "tcp://%s:5655" % self.ip, "villinvic@%s" % self.ip, password=psw)
                 ssh.tunnel_connection(self.evolved_pipe, "tcp://%s:5656" % self.ip, "villinvic@%s" % self.ip, password=psw)
             else:
-
                 self.mating_pipe.connect("tcp://%s:5655" % self.ip)
                 self.evolved_pipe.connect("tcp://%s:5656" % self.ip)
 
@@ -425,9 +423,7 @@ class EvolutionServer:
             print(individual['eval'])
 
     def run(self):
-        trained = None
         print('[%d] started' % self.ID)
-
         while True:
             print('[%d] receiving mating' % self.ID)
             mating = self.recv_mating()
@@ -438,12 +434,11 @@ class EvolutionServer:
             print('[%d] mutating ok' % self.ID)
             trained = self.DRL(qs)
             print('[%d] DRL ok' % self.ID)
-            tf.keras.backend.clear_session()
             self.evaluate(trained)
             print('[%d] eval ok' % self.ID)
-
             self.send_evolved(trained)
             print('[%d] sent evolved' % self.ID)
+            sleep(2)
 
 
 def smooth(y, box_pts):
